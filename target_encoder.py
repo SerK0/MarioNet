@@ -69,7 +69,7 @@ class TargetEncoder(nn.Module):
         for i, block in enumerate(self.upsampling_blocks):
             x = block(x, feature_maps[-2 - i])
 
-        optical_flow = F.tanh(self.output_conv(x))
+        optical_flow = torch.tanh(self.output_conv(x))
         *s, zy = feature_maps
         s = [self.warp_image(image, optical_flow) for image in s]
         return s, zy
