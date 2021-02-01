@@ -47,6 +47,10 @@ class TargetEncoder(nn.Module):
         self.output_conv = nn.Conv2d(128, out_channels=2, kernel_size=3, padding=1)
 
     def warp_image(self, image, optical_flow):
+        """
+        Warp image according to optical flow map.
+        Heavily influenced by https://github.com/AliaksandrSiarohin/monkey-net/blob/master/modules/generator.py#L51
+        """
         _, _, flow_h, flow_w = optical_flow.size()
         _, _, image_h, image_w = image.size()
         # TODO(binpord): MarioNETte authors use average pooling instead of nearest interpolation
