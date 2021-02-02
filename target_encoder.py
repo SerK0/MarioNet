@@ -2,10 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from common import MarioNetModule, pairwise
 from unet_blocks import DownBlock, UpBlock
 
 
-class TargetEncoder(nn.Module):
+class TargetEncoder(MarioNetModule):
     """
     Target encoder. Quote from original paper:
     'The target encoder Ey(y, ry) adopts a U-Net architecture to extract style information
@@ -13,38 +14,38 @@ class TargetEncoder(nn.Module):
       feature maps S.'
     """
 
-    def __init__(self, image_channels=3, landmark_channels=2):
-        super().__init__()
+    def __init__(self, config):
+        super().__init__(config)
         self.input_conv = nn.Conv2d(
-            image_channels + landmark_channels,
-            out_channels=64,
+            self.config.image_channels + self.config.landmark_channels,
+            out_channels=self.config.downsampling_channels[0],
             kernel_size=3,
             padding=1,
         )
 
         # '...adopts a U-Net style architecture including five downsampling blocks
         #   and four upsampling blocks with skip connections'
-        self.downsampling_blocks = nn.ModuleList(
-            [
-                DownBlock(64, 128),
-                DownBlock(128, 256),
-                DownBlock(256, 512),
-                DownBlock(512, 1024),
-                DownBlock(1024, 2048),
-            ]
-        )
+        assert len(self.config.downsampling_channels) == 6
+        downsampling_blocks = []
+        for in_channels, out_channels in pairwise(self.config.downsampling_channels):
+            downsampling_blocks.append(DownBlock(in_channels, out_channels))
 
-        self.upsampling_blocks = nn.ModuleList(
-            [
-                UpBlock(2048, 1024),
-                UpBlock(1024, 512),
-                UpBlock(512, 256),
-                UpBlock(256, 128),
-            ]
-        )
+        self.downsampling_blocks = nn.ModuleList(downsampling_blocks)
+
+        assert len(self.config.upsampling_channels) == 5
+        upsampling_blocks = []
+        for in_channels, out_channels in pairwise(self.config.upsampling_channels):
+            upsampling_blocks.append(UpBlock(in_channels, out_channels))
+
+        self.upsampling_blocks = nn.ModuleList(upsampling_blocks)
 
         # TODO(binpord): will 1x1 conv be better?
-        self.output_conv = nn.Conv2d(128, out_channels=2, kernel_size=3, padding=1)
+        self.output_conv = nn.Conv2d(
+            self.config.upsampling_channels[-1],
+            out_channels=2,
+            kernel_size=3,
+            padding=1,
+        )
 
     def warp_image(self, image, optical_flow):
         """
