@@ -32,10 +32,19 @@ class BasicBlock(nn.Module):
         return self.act(final_res + self.identity_sparse(x))
 
 
-
 class DriverEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, feature_dim):
         super(DriverEncoder, self).__init__()
 
+        self.block1 = BasicBlock(feature_dim, feature_dim * 2, downsample=True)
+        self.block2 = BasicBlock(feature_dim * 2, feature_dim * 4, downsample=True)
+        self.block3 = BasicBlock(feature_dim * 4, feature_dim * 8, downsample=True)
+        self.block4 = BasicBlock(feature_dim * 8, feature_dim * 16, downsample=True)
+
     def forward(self, rx):
-        pass
+        x = self.block1(rx)
+        x = self.block2(x)
+        x = self.block3(x)
+        zx = self.block4(x)
+
+        return zx
