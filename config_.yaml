@@ -1,0 +1,7 @@
+device: cuda
+model:
+    DriverEncoder:
+        image_preprocessed_channels: 3
+        output_channels: 1024
+        basic_block_depth: 4
+        depth: 4
