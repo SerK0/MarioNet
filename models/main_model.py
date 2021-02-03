@@ -15,11 +15,11 @@ class BasicBlock(nn.Module):
         else:
             self.identity_sparse = nn.Identity()
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.act1 = nn.ReLU()
 
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
 
         self.act = nn.ReLU()
