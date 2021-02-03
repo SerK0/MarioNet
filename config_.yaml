@@ -2,6 +2,12 @@ device: cuda
 model:
     DriverEncoder:
         image_preprocessed_channels: 3
+        hidden_features_dim: [
+            64,
+            128,
+            256,
+            512
+        ]
         output_channels: 1024
         basic_block_depth: 4
         depth: 4
