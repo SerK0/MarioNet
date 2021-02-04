@@ -19,3 +19,11 @@ model:
             - 512
             - 256
             - 128
+    Decoder:
+        channels:
+            - 1024
+            - 512
+            - 256
+            - 128
+            - 64
+        output_channels: 3
