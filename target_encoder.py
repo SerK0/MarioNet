@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from common import MarioNetModule, pairwise
+from common import MarioNetModule, pairwise, warp_image
 from unet_blocks import DownBlock, UpBlock
 
 
@@ -47,21 +47,6 @@ class TargetEncoder(MarioNetModule):
             padding=1,
         )
 
-    def warp_image(self, image, optical_flow):
-        """
-        Warp image according to optical flow map.
-        Heavily influenced by https://github.com/AliaksandrSiarohin/monkey-net/blob/master/modules/generator.py#L51
-        """
-        _, _, flow_h, flow_w = optical_flow.size()
-        _, _, image_h, image_w = image.size()
-        # TODO(binpord): MarioNETte authors use average pooling instead of nearest interpolation
-        #   as opposed to the referenced paper.
-        optical_flow = F.interpolate(
-            optical_flow, size=(image_h, image_w), mode="nearest"
-        )
-        optical_flow = optical_flow.permute(0, 2, 3, 1)
-        return F.grid_sample(image, optical_flow)
-
     def forward(self, target_image, landmark_image):
         x = torch.cat([target_image, landmark_image], dim=1)
         x = F.relu(self.input_conv(x))
@@ -76,5 +61,5 @@ class TargetEncoder(MarioNetModule):
 
         optical_flow = torch.tanh(self.output_conv(x))
         *s, zy = feature_maps
-        s = [self.warp_image(image, optical_flow) for image in s]
+        s = [warp_image(image, optical_flow) for image in s]
         return s, zy
