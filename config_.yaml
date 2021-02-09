@@ -1,7 +1,7 @@
 device: cuda
 model:
     DriverEncoder:
-        image_preprocessed_channels: 3
+        input_feature_dim: 3
         hidden_features_dim: [
             64,
             128,
@@ -9,5 +9,12 @@ model:
             512
         ]
         output_channels: 1024
-        basic_block_depth: 4
         depth: 4
+    Blender:
+        input_target_feature_map_dim:
+            512
+    PositionalEncoding:
+        driver_feature_size:
+            [512, 228, 228]
+        target_feature_size:
+            [4, 512, 228, 228]
