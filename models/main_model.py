@@ -142,13 +142,15 @@ class SelfAttentionBlock(nn.Module):
 
         v = self.v_proj(zy.permute(0, 1, 3, 4, 2))
 
-        q_flatten = q.view(-1, self.attention_feature_size)
-        k_flatten = k.view(-1, self.attention_feature_size)
+        q_flatten = q.view(batch_size, -1, self.attention_feature_size)
+        k_flatten = k.view(batch_size, -1, self.attention_feature_size)
 
         attn_value = torch.bmm(q_flatten, k_flatten.T) / torch.sqrt(self.attention_feature_size)
         orig_shape = attn_value.size()
 
-        output_t = F.softmax(attn_value.flatten()).view(*orig_shape) @ v.view(-1, self.attention_feature_size)
+        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1)).view(*orig_shape)
+        output_t = torch.bmm(softmax_attentioned, v.view(batch_size, -1, self.attention_feature_size))
+
         return output_t.view(batch_size, cx, hx, wx)
 
 
