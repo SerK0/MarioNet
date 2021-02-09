@@ -118,11 +118,11 @@ class SelfAttentionBlock(nn.Module):
         self.k_proj = nn.Linear(target_feature_dim, attention_feature_dim)
         self.py_proj = nn.Linear(target_feature_dim, attention_feature_dim)
 
-        self.v_proj = nn.Linear(target_feature_dim, attention_feature_dim)
+        self.v_proj = nn.Linear(target_feature_dim, driver_feature_dim)
 
         self.attention_feature_size = attention_feature_dim
 
-    def forward(self, zx: torch.Tensor, zy: torch.Tensor) -> torch.Tensor[torch.float32]:
+    def forward(self, zx: torch.Tensor, zy: torch.Tensor) -> torch.Tensor:
         '''
         :param zx: driver feature map tensor --- size: [B x cx x H x W]
         :param zy: target feature map tensor --- size: [B x K x cy x H x W]
@@ -145,11 +145,13 @@ class SelfAttentionBlock(nn.Module):
         q_flatten = q.view(batch_size, -1, self.attention_feature_size)
         k_flatten = k.view(batch_size, -1, self.attention_feature_size)
 
-        attn_value = torch.bmm(q_flatten, k_flatten.T) / torch.sqrt(self.attention_feature_size)
+        attn_value = torch.bmm(q_flatten, k_flatten.permute(0, 2, 1)) / \
+                                    torch.sqrt(torch.tensor(self.attention_feature_size, dtype=torch.float32))
+
         orig_shape = attn_value.size()
 
-        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1)).view(*orig_shape)
-        output_t = torch.bmm(softmax_attentioned, v.view(batch_size, -1, self.attention_feature_size))
+        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1), dim=0).view(*orig_shape)
+        output_t = torch.bmm(softmax_attentioned, v.view(batch_size, -1, cx))
 
         return output_t.view(batch_size, cx, hx, wx)
 
