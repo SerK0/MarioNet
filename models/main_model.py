@@ -34,7 +34,11 @@ class BasicBlock(nn.Module):
 
 
 class DriverEncoder(nn.Module):
-    def __init__(self, config_driver_encoder, feature_dim):
+    def __init__(self, config_driver_encoder):
+        '''
+        Downsample Encoder of input driver image
+
+        '''
         super(DriverEncoder, self).__init__()
 
         self.config = config_driver_encoder
@@ -52,18 +56,14 @@ class DriverEncoder(nn.Module):
                                 for idx, hidden_dim in enumerate(hidden_features_dim[:-1])
         ])
 
-        self.block1 = BasicBlock(feature_dim, feature_dim * 2, downsample=True)
-        self.block2 = BasicBlock(feature_dim * 2, feature_dim * 4, downsample=True)
-        self.block3 = BasicBlock(feature_dim * 4, feature_dim * 8, downsample=True)
-        self.block4 = BasicBlock(feature_dim * 8, feature_dim * 16, downsample=True)
-
     def forward(self, rx):
-        x = self.block1(rx)
-        x = self.block2(x)
-        x = self.block3(x)
-        zx = self.block4(x)
 
-        return zx
+        x = self.block1(rx)
+
+        for layer in self.blocks:
+            x = layer(x)
+
+        return x
 
 
 class PositionalEncoding:
@@ -154,6 +154,17 @@ class SelfAttentionBlock(nn.Module):
         output_t = torch.bmm(softmax_attentioned, v.view(batch_size, -1, cx))
 
         return output_t.view(batch_size, cx, hx, wx)
+
+
+class Conv5Dtensor(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, padding, stride=1):
+        super(Conv5Dtensor, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding, stride)
+
+    def forward(self, x):
+        batch_size, d1, d2, h, w = x.size()
+        x = self.conv(x.view(batch_size, -1, h, w))
+        return x.view(batch_size, d1, d2, h, w)
 
 
 class Blender(nn.Module):
