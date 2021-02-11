@@ -6,22 +6,25 @@ model:
     TargetEncoder:
         image_channels: 3
         landmark_channels: 2
+        # 'The number of channels is doubled (or halved) when the output is downsampled
+        #   (or upsampled). The minimum number of channels is set to 64 and the maximum
+        #   number of channels is set to 512 for every layer.'
         downsampling_channels:
             - 64
             - 128
             - 256
             - 512
-            - 1024
-            - 2048
+            - 512
+            - 512
         upsampling_channels:
-            - 2048
-            - 1024
+            - 512
+            - 512
             - 512
             - 256
             - 128
     Decoder:
         channels:
-            - 1024
+            - 512
             - 512
             - 256
             - 128
