@@ -27,3 +27,24 @@ model:
             - 128
             - 64
         output_channels: 3
+    DriverEncoder:
+        input_feature_dim: 3
+        hidden_features_dim:
+          - 64
+          - 128
+          - 256
+          - 512
+        depth: 4
+    Blender:
+        input_target_feature_map_dim:
+            512
+    PositionalEncoding:
+        driver_feature_size:
+          - 512
+          - 228
+          - 228
+        target_feature_size:
+          - 4
+          - 512
+          - 228
+          - 228
