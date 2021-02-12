@@ -20,8 +20,9 @@ class DotDict(dict):
 
 
 class Config(DotDict):
-    def __init__(self, config_path='config.yaml'):
-        with open(config_path, 'r') as config_file:
+    @classmethod
+    def from_file(cls, filepath='config.yaml'):
+        with open(filepath, 'r') as config_file:
             config_dict = yaml.load(config_file)
 
-        super().__init__(config_dict)
+        return cls(config_dict)

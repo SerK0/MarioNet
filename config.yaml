@@ -1,5 +1,32 @@
 device: cuda
 model:
+    # MarioNet parameters grouped by main network components.
+    # Groups are named after implementation classnames (i.e. CamelCase).
+    # Other keys should use snake_case.
+    TargetEncoder:
+        image_channels: 3
+        landmark_channels: 2
+        downsampling_channels:
+            - 64
+            - 128
+            - 256
+            - 512
+            - 1024
+            - 2048
+        upsampling_channels:
+            - 2048
+            - 1024
+            - 512
+            - 256
+            - 128
+    Decoder:
+        channels:
+            - 1024
+            - 512
+            - 256
+            - 128
+            - 64
+        output_channels: 3
     DriverEncoder:
         input_feature_dim: 3
         hidden_features_dim:
