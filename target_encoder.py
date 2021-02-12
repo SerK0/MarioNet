@@ -15,7 +15,7 @@ class TargetEncoder(MarioNetModule):
     """
 
     def __init__(self, config):
-        super().__init__(config)
+        super(TargetEncoder, self).__init__(config)
         self.input_conv = nn.Conv2d(
             self.config.image_channels + self.config.landmark_channels,
             out_channels=self.config.downsampling_channels[0],

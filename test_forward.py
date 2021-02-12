@@ -78,3 +78,11 @@ def test_decoder(batch_size, config):
 
     target_encoder_feature_maps = list(reversed(target_encoder_feature_maps))
     Decoder(config)(blender_output, target_encoder_feature_maps)
+
+
+def test_driver_encoder():
+    pass
+
+
+def test_blender():
+    pass

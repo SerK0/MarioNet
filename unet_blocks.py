@@ -22,7 +22,7 @@ class DoubleConvBlock(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels):
-        super().__init__()
+        super(DoubleConvBlock, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
@@ -64,7 +64,7 @@ class DownBlock(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels):
-        super().__init__()
+        super(DownBlock, self).__init__()
         self.conv = DoubleConvBlock(in_channels, out_channels)
         self.downsample = nn.MaxPool2d(kernel_size=2)
 
@@ -85,7 +85,7 @@ class UpBlock(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels):
-        super().__init__()
+        super(UpBlock, self).__init__()
         self.upsample = UpConv(in_channels, out_channels=in_channels // 2)
         self.conv = DoubleConvBlock(in_channels, out_channels)
 

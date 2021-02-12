@@ -14,7 +14,7 @@ class WarpAlignmentBlock(nn.Module):
     """
 
     def __init__(self, in_channels):
-        super().__init__()
+        super(WarpAlignmentBlock, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels=2, kernel_size=1)
 
     def forward(self, x, feature_map):
@@ -24,7 +24,7 @@ class WarpAlignmentBlock(nn.Module):
 
 class DecoderBlock(nn.Module):
     def __init__(self, in_channels, feature_map_channels, out_channels):
-        super().__init__()
+        super(DecoderBlock, self).__init__()
         self.warp_alignment = WarpAlignmentBlock(in_channels)
         self.conv = nn.Conv2d(
             in_channels + feature_map_channels, out_channels, kernel_size=1
@@ -47,7 +47,7 @@ class Decoder(MarioNetModule):
     """
 
     def __init__(self, config):
-        super().__init__(config)
+        super(Decoder, self).__init__(config)
 
         # feature maps are target encoder downsampling path outputs from all layers except last
         feature_map_channels = config.model.TargetEncoder.downsampling_channels[1:-1]
