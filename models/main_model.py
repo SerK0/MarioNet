@@ -148,23 +148,10 @@ class SelfAttentionBlock(nn.Module):
         attn_value = torch.bmm(q_flatten, k_flatten.permute(0, 2, 1)) / \
                                     torch.sqrt(torch.tensor(self.attention_feature_size, dtype=torch.float32))
 
-        orig_shape = attn_value.size()
-
-        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1), dim=0).view(*orig_shape)
+        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1), dim=0).view(*attn_value.size())
         output_t = torch.bmm(softmax_attentioned, v.view(batch_size, -1, cx))
 
         return output_t.view(batch_size, cx, hx, wx)
-
-
-class Conv5Dtensor(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, padding, stride=1):
-        super(Conv5Dtensor, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding, stride)
-
-    def forward(self, x):
-        batch_size, d1, d2, h, w = x.size()
-        x = self.conv(x.view(batch_size, -1, h, w))
-        return x.view(batch_size, d1, d2, h, w)
 
 
 class Blender(nn.Module):
