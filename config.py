@@ -12,8 +12,7 @@ class DotDict(dict):
                 value = DotDict(value)
             elif isinstance(value, list):
                 value = [
-                    DotDict(item) if isinstance(item, dict) else item
-                    for item in value
+                    DotDict(item) if isinstance(item, dict) else item for item in value
                 ]
 
             self[key] = value
@@ -21,8 +20,8 @@ class DotDict(dict):
 
 class Config(DotDict):
     @classmethod
-    def from_file(cls, filepath='config.yaml'):
-        with open(filepath, 'r') as config_file:
+    def from_file(cls, filepath="config.yaml"):
+        with open(filepath, "r") as config_file:
             config_dict = yaml.load(config_file)
 
         return cls(config_dict)
