@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from common import MarioNetModule, pairwise, warp_image
-from unet_blocks import DownBlock, UpBlock
+from biggan_blocks import ResBlockDown, UNetResBlockUp
 
 
 class TargetEncoder(MarioNetModule):
@@ -28,14 +28,21 @@ class TargetEncoder(MarioNetModule):
         assert len(self.config.downsampling_channels) == 6
         downsampling_blocks = []
         for in_channels, out_channels in pairwise(self.config.downsampling_channels):
-            downsampling_blocks.append(DownBlock(in_channels, out_channels))
+            downsampling_blocks.append(ResBlockDown(in_channels, out_channels))
 
         self.downsampling_blocks = nn.ModuleList(downsampling_blocks)
 
         assert len(self.config.upsampling_channels) == 5
         upsampling_blocks = []
-        for in_channels, out_channels in pairwise(self.config.upsampling_channels):
-            upsampling_blocks.append(UpBlock(in_channels, out_channels))
+        channels = zip(
+            self.config.upsampling_channels[:-1],
+            self.config.downsampling_channels[-2:0:-1],
+            self.config.upsampling_channels[1:],
+        )
+        for in_channels, skip_connection_channels, out_channels in channels:
+            upsampling_blocks.append(
+                UNetResBlockUp(in_channels, skip_connection_channels, out_channels)
+            )
 
         self.upsampling_blocks = nn.ModuleList(upsampling_blocks)
 
@@ -56,10 +63,14 @@ class TargetEncoder(MarioNetModule):
             x = block(x)
             feature_maps.append(x)
 
-        for i, block in enumerate(self.upsampling_blocks):
-            x = block(x, feature_maps[-2 - i])
+        for block, skip_connection in zip(self.upsampling_blocks, feature_maps[-2::-1]):
+            x = block(x, skip_connection)
 
         optical_flow = torch.tanh(self.output_conv(x))
-        *s, zy = feature_maps
-        s = [warp_image(image, optical_flow) for image in s]
-        return s, zy
+        *unwarped_s, zy = feature_maps
+        reversed_s = []
+        for feature_map in reversed(unwarped_s):
+            reversed_s.append(warp_image(feature_map, optical_flow))
+            optical_flow = F.avg_pool2d(optical_flow, kernel_size=2)
+
+        return list(reversed(reversed_s)), zy

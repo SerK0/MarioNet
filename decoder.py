@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from common import MarioNetModule, pairwise, warp_image
+from biggan_blocks import ResBlockUp
 
 
 class WarpAlignmentBlock(nn.Module):
@@ -26,16 +27,14 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, feature_map_channels, out_channels):
         super(DecoderBlock, self).__init__()
         self.warp_alignment = WarpAlignmentBlock(in_channels)
-        self.conv = nn.Conv2d(
-            in_channels + feature_map_channels, out_channels, kernel_size=1
+        self.res_upsample_block = ResBlockUp(
+            in_channels + feature_map_channels, out_channels
         )
-        self.upsample = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
 
     def forward(self, x, feature_map):
         warp_aligned_feature_map = self.warp_alignment(x, feature_map)
         x = torch.cat([x, warp_aligned_feature_map], dim=1)
-        x = F.relu(self.conv(x))
-        return self.upsample(x)
+        return self.res_upsample_block(x)
 
 
 class Decoder(MarioNetModule):

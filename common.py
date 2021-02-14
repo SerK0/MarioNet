@@ -15,15 +15,6 @@ def pairwise(iterable):
 
 
 def warp_image(image, optical_flow):
-    """
-    Warp image according to optical flow map.
-    Heavily influenced by https://github.com/AliaksandrSiarohin/monkey-net/blob/master/modules/generator.py#L51
-    """
-    _, _, flow_h, flow_w = optical_flow.size()
-    _, _, image_h, image_w = image.size()
-    # TODO(binpord): MarioNETte authors use average pooling instead of nearest interpolation
-    #   as opposed to the referenced paper.
-    optical_flow = F.interpolate(optical_flow, size=(image_h, image_w), mode="nearest")
     optical_flow = optical_flow.permute(0, 2, 3, 1)
     return F.grid_sample(image, optical_flow)
 
