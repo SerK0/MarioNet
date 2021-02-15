@@ -1,5 +1,7 @@
 # MarioNet
 
+https://arxiv.org/pdf/1911.08139.pdf
+
 Реализовать следующие элементы пайплайна:
 
 * VoxCeleb1, CelebV. Download.
