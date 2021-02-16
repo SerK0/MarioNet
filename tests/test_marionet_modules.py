@@ -2,9 +2,8 @@ import pytest
 import torch
 import yaml
 
-from config import Config
-from target_encoder import TargetEncoder
-from decoder import Decoder
+from model.config import Config
+from model.marionet_modules import TargetEncoder, Decoder
 
 
 @pytest.fixture
