@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from config import Config
+from model.config import Config
 
 
 def test_config():

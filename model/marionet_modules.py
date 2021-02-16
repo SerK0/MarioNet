@@ -1,6 +1,10 @@
+import typing as tp
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from .config import Config
 
 from .common.utils import pairwise, warp_image
 from .common.warp_alignment import WarpAlignmentBlock
@@ -14,7 +18,17 @@ from .common.blocks import (
 
 
 class MarioNetModule(nn.Module):
-    def __init__(self, config):
+    """
+    Base class for all MarioNet modules.
+
+    Parses config and sets self.config to be config.model.__class__name__ on __init__.
+    """
+
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
         super(MarioNetModule, self).__init__()
         self.config = config["model"][self.__class__.__name__]
 
@@ -27,7 +41,11 @@ class TargetEncoder(MarioNetModule):
       feature maps S.'
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
         super(TargetEncoder, self).__init__(config)
         self.input_conv = nn.Conv2d(
             self.config.image_channels + self.config.landmark_channels,
@@ -67,7 +85,27 @@ class TargetEncoder(MarioNetModule):
             padding=1,
         )
 
-    def forward(self, target_image, landmark_image):
+    def forward(
+        self, target_image: torch.Tensor, landmark_image: torch.Tensor
+    ) -> tuple[list[torch.Tensor], torch.Tensor]:
+        """
+        Forward pass of TargetEncoder.
+
+        Parses target image and its landmarks to produce output feature maps and optical flow
+        for warp alignment.
+
+        Normally parses single target image at a time, however, can be tricked with temporal
+        increase of batch size.
+
+        :param torch.Tensor target_image: target image, shape [B, I, W, H]
+        :param torch.Tensor landmark_image: target image landmarks, shape [B, L, W, H]
+        :returns:
+          - list[torch.Tensor] S - feature maps to be used in decoder
+          - torch.Tensor zy - TargetEncoder output feature map
+        :rtype: tuple[list[torch.Tensor], torch.Tensor]
+
+        Here B - batch size, I - image_channels, L - landmark_channels, W - width, H - height.
+        """
         x = torch.cat([target_image, landmark_image], dim=1)
         x = F.relu(self.input_conv(x))
 
@@ -97,7 +135,11 @@ class Decoder(MarioNetModule):
       convolution layer and a hyperbolic tangent activation function.'
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
         super(Decoder, self).__init__(config)
 
         # feature maps are target encoder downsampling path outputs from all layers except last
@@ -121,7 +163,19 @@ class Decoder(MarioNetModule):
             kernel_size=1,
         )
 
-    def forward(self, blender_output, target_encoder_feature_maps):
+    def forward(
+        self,
+        blender_output: torch.Tensor,
+        target_encoder_feature_maps: list[torch.Tensor],
+    ) -> torch.Tensor:
+        """
+        Decoder forward pass.
+
+        :param torch.Tensor blender_output: Blender output
+        :param list[torch.Tensor] target_encoder_feature_maps: TargetEncoder feature maps (S in doc)
+        :returns: decoder output
+        :rtype: torch.Tensor
+        """
         x = blender_output
         for block, feature_map in zip(
             self.decoder_blocks, reversed(target_encoder_feature_maps)

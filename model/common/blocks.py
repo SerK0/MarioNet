@@ -10,7 +10,7 @@ from .positional_encoding import PositionalEncoding
 Main building blocks for the MarioNet model.
 
 ResBlockDown, ResBlockUp and UNetResBlockUp are BigGAN blocks.
-(see more at https://arxiv.org/pdf/1809.11096.pdf)
+(see more at https://arxiv.org/abs/1809.11096)
 
 Decoder Block is the MarioNet's Decoder block based on ResBlockUp.
 
@@ -19,7 +19,16 @@ SelfAttentionBlock is used in MarioNet's Blender.
 
 
 class ResBlockDown(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    """
+    BigGAN downsampling block.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        """
+        :param int in_channels: input channels
+        :param int out_channels: output channels
+        :returns: None
+        """
         super(ResBlockDown, self).__init__()
 
         self.residual_connection = nn.Sequential(
@@ -35,12 +44,25 @@ class ResBlockDown(nn.Module):
             nn.AvgPool2d(kernel_size=2),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor x: input tensor
+        :rtype: torch.Tensor
+        """
         return self.residual_connection(x) + self.conv_downsample(x)
 
 
 class ResBlockUp(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    """
+    BigGAN upsampling block.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        """
+        :param int in_channels: input channels
+        :param int out_channels: output channels
+        :returns: None
+        """
         super(ResBlockUp, self).__init__()
 
         self.residual_connection = nn.Sequential(
@@ -58,12 +80,28 @@ class ResBlockUp(nn.Module):
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor x: input tensor
+        :rtype: torch.Tensor
+        """
         return self.residual_connection(x) + self.conv_upsample(x)
 
 
 class UNetResBlockUp(nn.Module):
-    def __init__(self, in_channels, skip_connection_channels, out_channels):
+    """
+    U-Net (https://arxiv.org/abs/1505.04597) adaptation of BigGAN upsampling block.
+    """
+
+    def __init__(
+        self, in_channels: int, skip_connection_channels: int, out_channels: int
+    ) -> None:
+        """
+        :param int in_channels: input channels
+        :param int skip_connection_channels: skip-connection input channels
+        :param int out_channels: output channels
+        :returns: None
+        """
         super(UNetResBlockUp, self).__init__()
 
         self.residual_connection = nn.Sequential(
@@ -89,21 +127,43 @@ class UNetResBlockUp(nn.Module):
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
         )
 
-    def forward(self, x, skip_connection):
+    def forward(self, x: torch.Tensor, skip_connection: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor x: input tensor
+        :param torch.Tensor skip_connection: skip connection
+        :rtype: torch.Tensor
+        """
         upsampled = self.upsample(x)
         upsampled = torch.cat([upsampled, skip_connection], dim=1)
         return self.residual_connection(x) + self.conv(upsampled)
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, feature_map_channels, out_channels):
+    """
+    Decoder basic building block. Consists of WarpAlignmentBlock and ResBlockUp.
+    """
+
+    def __init__(
+        self, in_channels: int, feature_map_channels: int, out_channels: int
+    ) -> None:
+        """
+        :param int in_channels: input channels
+        :param int feature_map_channels: feature map input channels
+        :param int out_channels: output channels
+        :returns: None
+        """
         super(DecoderBlock, self).__init__()
         self.warp_alignment = WarpAlignmentBlock(in_channels)
         self.res_upsample_block = ResBlockUp(
             in_channels + feature_map_channels, out_channels
         )
 
-    def forward(self, x, feature_map):
+    def forward(self, x: torch.Tensor, feature_map: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor x: input tensor
+        :param torch.Tensor feature_map: feature map input tensor
+        :rtype: torch.Tensor
+        """
         warp_aligned_feature_map = self.warp_alignment(x, feature_map)
         x = torch.cat([x, warp_aligned_feature_map], dim=1)
         return self.res_upsample_block(x)

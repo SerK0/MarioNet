@@ -2,7 +2,7 @@ import pytest
 import torch
 import yaml
 
-from config import Config
+from model.config import Config
 from model.marionet_modules import TargetEncoder, Decoder
 
 
