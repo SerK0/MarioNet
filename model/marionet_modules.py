@@ -15,7 +15,7 @@ from .common.blocks import (
 
 class MarioNetModule(nn.Module):
     def __init__(self, config):
-        super().__init__()
+        super(MarioNetModule, self).__init__()
         self.config = config["model"][self.__class__.__name__]
 
 

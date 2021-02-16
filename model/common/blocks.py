@@ -20,7 +20,7 @@ SelfAttentionBlock is used in MarioNet's Blender.
 
 class ResBlockDown(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super().__init__()
+        super(ResBlockDown, self).__init__()
 
         self.residual_connection = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1),
@@ -41,7 +41,7 @@ class ResBlockDown(nn.Module):
 
 class ResBlockUp(nn.Module):
     def __init__(self, in_channels, out_channels):
-        super().__init__()
+        super(ResBlockUp, self).__init__()
 
         self.residual_connection = nn.Sequential(
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
@@ -64,7 +64,7 @@ class ResBlockUp(nn.Module):
 
 class UNetResBlockUp(nn.Module):
     def __init__(self, in_channels, skip_connection_channels, out_channels):
-        super().__init__()
+        super(UNetResBlockUp, self).__init__()
 
         self.residual_connection = nn.Sequential(
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
