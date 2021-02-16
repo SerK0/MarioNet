@@ -2,7 +2,6 @@ import itertools
 import typing as tp
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 

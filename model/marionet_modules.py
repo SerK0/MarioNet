@@ -1,5 +1,3 @@
-import typing as tp
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,10 +5,8 @@ import torch.nn.functional as F
 from .config import Config
 
 from .common.utils import pairwise, warp_image
-from .common.warp_alignment import WarpAlignmentBlock
 from .common.blocks import (
     ResBlockDown,
-    ResBlockUp,
     UNetResBlockUp,
     DecoderBlock,
     SelfAttentionBlock,
