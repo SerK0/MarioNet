@@ -1,7 +1,11 @@
 import torch
 import pytest
 
-from perceptual_loss import PerceptualLossVGG19, PerceptualLossVGG_VD_16, PerceptualLoss
+from loss.perceptual_loss import (
+    PerceptualLossVGG19,
+    PerceptualLossVGG_VD_16,
+    PerceptualLoss,
+)
 
 
 @pytest.fixture
