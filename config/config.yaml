@@ -1,0 +1,4 @@
+device: cpu
+landmark_type: 3D
+path_to_voxceleb: /home/serk0/Business/new_live/VoxCeleb1/
+subfolders: Faces/*/*/*/*
