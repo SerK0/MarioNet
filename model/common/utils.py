@@ -17,9 +17,3 @@ def pairwise(iterable):
 def warp_image(image, optical_flow):
     optical_flow = optical_flow.permute(0, 2, 3, 1)
     return F.grid_sample(image, optical_flow)
-
-
-class MarioNetModule(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.config = config["model"][self.__class__.__name__]

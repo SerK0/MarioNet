@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from config import Config
 
 
@@ -24,7 +26,7 @@ def test_config():
 
 
 def test_config_from_file():
-    config = Config.from_file("config.yaml")
+    config = Config.from_file(Path(__file__).parent / "test_config.yaml")
     assert "device" in config
     assert config["device"] == "cuda"
     assert config.device == "cuda"
