@@ -14,7 +14,12 @@ class PerceptualLossVGG19(nn.Module):
     https://github.com/pytorch/examples/blob/master/fast_neural_style/neural_style/vgg.py
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Perceptual loss VGG19 init
+
+        :returns: None
+        """
         super(PerceptualLossVGG19, self).__init__()
 
         vgg_features = torchvision.models.vgg19(pretrained=True).features
@@ -42,7 +47,15 @@ class PerceptualLossVGG19(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
-    def forward(self, x):
+    def forward(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Forward pass.
+
+        :param torch.Tensor x: input image
+        :returns: tuple of 5 torch.Tensors - relu1_1, relu2_1, relu3_1, relu4_1 and relu5_1
+        """
         relu1_1 = self.relu1_1(x)
         relu2_1 = self.relu2_1(relu1_1)
         relu3_1 = self.relu3_1(relu2_1)
@@ -58,7 +71,12 @@ class PerceptualLossVGG_VD_16(nn.Module):
     https://www.robots.ox.ac.uk/~albanie/pytorch-models.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Perceptual loss VGG VD 16 init
+
+        :returns: None
+        """
         super(PerceptualLossVGG_VD_16, self).__init__()
         self.meta = {
             "mean": [129.186279296875, 104.76238250732422, 93.59396362304688],
@@ -127,7 +145,15 @@ class PerceptualLossVGG_VD_16(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
-    def load_checkpoint(self):
+    def load_checkpoint(self) -> None:
+        """
+        Checkpoint loading function.
+
+        Checks for the ./vgg_vd.pth file and downloads it if not available.
+        After that loads model via self.load_state_dict.
+
+        :returns: None
+        """
         checkpoint_path = Path(__file__).parent / "vgg_vd.pth"
         if not checkpoint_path.exists():
             print("Downloading checkpoint file")
@@ -148,7 +174,15 @@ class PerceptualLossVGG_VD_16(nn.Module):
         assert not missing_keys
         assert len(unexpected_keys) == 10
 
-    def forward(self, data):
+    def forward(
+        self, data: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Forward pass.
+
+        :param torch.Tensor data: input image
+        :returns: tuple of 5 torch.Tensors - relu1_1, relu2_1, relu3_1, relu4_1 and relu5_1
+        """
         x1 = self.conv1_1(data)
         x2 = self.relu1_1(x1)
         x3 = self.conv1_2(x2)
@@ -179,11 +213,30 @@ class PerceptualLossVGG_VD_16(nn.Module):
 
 
 class PerceptualLoss:
-    def __init__(self, cnn):
+    """
+    Preceptual loss class.
+
+    Takes input and target image and runs specified CNN on them.
+    After that compares outputed feature maps with L1 loss.
+    """
+
+    def __init__(self, cnn: nn.Module) -> None:
+        """
+        :param nn.Module cnn: CNN to parse images
+        :returns: None
+        """
         self.cnn = cnn
         self.criterion = nn.L1Loss()
 
-    def __call__(self, output, target):
+    def __call__(self, output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Runs CNN and compares feature maps.
+
+        :param torch.Tensor output: GANs output
+        :param torch.Tensor target: target image
+        :returns: perceptual loss
+        :rtype: torch.Tensor
+        """
         output_feature_maps = self.cnn(output)
         target_feature_maps = self.cnn(target)
         feature_maps = zip(output_feature_maps, target_feature_maps)
