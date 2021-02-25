@@ -1,0 +1,53 @@
+device: cuda
+model:
+    # MarioNet parameters grouped by main network components.
+    # Groups are named after implementation classnames (i.e. CamelCase).
+    # Other keys should use snake_case.
+    TargetEncoder:
+        image_channels: 3
+        landmark_channels: 2
+        # 'The number of channels is doubled (or halved) when the output is downsampled
+        #   (or upsampled). The minimum number of channels is set to 64 and the maximum
+        #   number of channels is set to 512 for every layer.'
+        downsampling_channels:
+            - 64
+            - 128
+            - 256
+            - 512
+            - 512
+            - 512
+        upsampling_channels:
+            - 512
+            - 512
+            - 512
+            - 256
+            - 128
+    Decoder:
+        channels:
+            - 512
+            - 512
+            - 256
+            - 128
+            - 64
+        output_channels: 3
+    DriverEncoder:
+        input_feature_dim: 3
+        hidden_features_dim:
+          - 64
+          - 128
+          - 256
+          - 512
+        depth: 4
+    Blender:
+        input_target_feature_map_dim:
+            512
+    PositionalEncoding:
+        driver_feature_size:
+          - 512
+          - 228
+          - 228
+        target_feature_size:
+          - 4
+          - 512
+          - 228
+          - 228
