@@ -20,16 +20,21 @@ class MarioNetDataset(Dataset):
         identity_structure: str,
         video_structue: str,
         n_target_image=4,
-        resized_image_height=128,
-        resized_image_width=128,
+        image_size=128,
     ):
         self.folder = folder
         self.faces = faces_structure
         self.identity_structure = os.listdir(os.path.join(folder, identity_structure))
         self.video_structue = video_structue
         self.n_target_image = n_target_image
-        self.resized_image_height = resized_image_height
-        self.resized_image_width = resized_image_width
+        self.image_size = image_size
+
+        transformations = torch.nn.Sequential(
+            transforms.Resize((image_size,), interpolation=Image.BILINEAR),
+            transforms.CenterCrop(image_size),
+        )
+
+        self.transforms = torch.jit.script(transformations)
 
     def __len__(self):
         return len(self.identity_structure)
@@ -61,13 +66,6 @@ class MarioNetDataset(Dataset):
             path_to_target_faces, size=self.n_target_image
         )
 
-        result = {
-            "source_image": None,
-            "source_landmarks": None,
-            "target_images": None,
-            "target_landmarks": None,
-        }
-
         source_image = io.imread(source_face_path)
         source_landmarks = io.imread(re.sub("Faces", "Landmarks", source_face_path))
 
@@ -80,25 +78,21 @@ class MarioNetDataset(Dataset):
                 re.sub("Faces", "Landmarks", target_face)
             )
 
-            target_images.append(self.__resize_image(torch.tensor(target_image.T)))
-            target_landmarks.append(
-                self.__resize_image(torch.tensor(target_image_landmarks.T))
-            )
+            target_images.append(self.__resize_image(target_image.T))
+            target_landmarks.append(self.__resize_image(target_image_landmarks.T))
 
-        result["source_image"] = self.__resize_image(torch.tensor(source_image.T))
-        result["source_landmarks"] = self.__resize_image(
-            torch.tensor(source_landmarks.T)
-        )
-        result["target_images"] = torch.stack(target_images)
-        result["target_landmarks"] = torch.stack(target_landmarks)
+        result = {
+            "source_image": self.__resize_image(source_image.T),
+            "source_landmarks": self.__resize_image(source_landmarks.T),
+            "target_images": torch.stack(target_images),
+            "target_landmarks": torch.stack(target_landmarks),
+        }
 
         return result
 
     def __resize_image(self, image):
-        return transforms.Resize(
-            (self.resized_image_height, self.resized_image_width),
-            interpolation=Image.NEAREST,
-        ).forward(image)
+        image = torch.tensor(image)
+        return self.transforms.forward(image)
 
 
 if __name__ == "__main__":
@@ -107,8 +101,7 @@ if __name__ == "__main__":
     identity_structure = "Faces/"
     video_structue = "Faces/{0}/1.6/"
     n_target_image = 4
-    resized_image_height = 128
-    resized_image_width = 128
+    image_size = 128
 
     marionet_dataset = MarioNetDataset(
         folder,
@@ -116,8 +109,7 @@ if __name__ == "__main__":
         identity_structure,
         video_structue,
         n_target_image,
-        resized_image_height,
-        resized_image_width,
+        image_size,
     )
 
     # print(marionet_dataset[3]["target_images"].size())
@@ -128,4 +120,11 @@ if __name__ == "__main__":
         break
 
     print(b["target_images"].size())
-    print("___")
+
+    for i, image in enumerate(b["target_images"][0]):
+        print(image.size())
+        io.imsave("/home/serk0/i{}.jpg".format(i), image.detach().numpy().T)
+
+    for i, image in enumerate(b["target_landmarks"][0]):
+        print(image.size())
+        io.imsave("/home/serk0/l{}.jpg".format(i), image.detach().numpy().T)
