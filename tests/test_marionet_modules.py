@@ -63,11 +63,9 @@ def test_driver_encoder():
     pass
 
 
-def test_blender(target_feature_dim, driver_feature_dim, ):
-    target_features = 0
-
-    driver_features = 1
+def test_blender():
+    pass
 
 
-def test_discriminatoe():
+def test_discriminator():
     pass

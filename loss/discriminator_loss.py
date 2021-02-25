@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 
 
-class HingeDiscriminatorLoss(nn.Module):
+class DiscriminatorHingeLoss(nn.Module):
     """
     HingeLoss functor for Discriminator
     """
     def __init__(self):
-        super(HingeDiscriminatorLoss, self).__init__()
+        super(DiscriminatorHingeLoss, self).__init__()
 
     def __call__(self, real_discriminator_features,
                        fake_discriminator_features):
@@ -24,17 +24,15 @@ class DiscriminatorLossPatches(nn.Module):
     """
     BCELoss functor (default) for Discriminator
     """
-    def __init__(self, base_loss=nn.BCELoss):
+    def __init__(self, base_loss=None):
         super(DiscriminatorLossPatches, self).__init__()
-        self.base_loss = base_loss()
-
-    def __call__(self, features_tensor, target_type):
-        if target_type == 'real':
-            return self.base_loss(features_tensor, torch.ones(features_tensor.size(), device=features_tensor.device))
-        elif target_type == 'fake':
-            return self.base_loss(features_tensor, torch.zeros(features_tensor.size(), device=features_tensor.device))
+        if base_loss is None:
+            self.base_loss = nn.BCELoss()
         else:
-            raise ValueError("Incorrect target_type: {}".format(target_type))
+            self.base_loss = base_loss
 
-
-
+    def __call__(self, features_tensor: torch.Tensor, is_real: bool):
+        if is_real:
+            return self.base_loss(features_tensor, torch.ones(features_tensor.size(), device=features_tensor.device))
+        else:
+            return self.base_loss(features_tensor, torch.zeros(features_tensor.size(), device=features_tensor.device))

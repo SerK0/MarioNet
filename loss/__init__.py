@@ -1,6 +1,4 @@
-from .discriminator_loss import (
-    DiscriminatorLossPatches,
-)
+from .discriminator_loss import DiscriminatorLossPatches
 
 from .perceptual_loss import (
     PerceptualLoss,

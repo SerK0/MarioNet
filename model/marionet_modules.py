@@ -264,6 +264,6 @@ class Discriminator(MarioNetModule):
 
         for module in self.model:
             x = module(x)
-            intermediate_features.append(x.clone().detach())
+            intermediate_features.append(x)
 
         return torch.sigmoid(x), intermediate_features
