@@ -2,7 +2,7 @@ import pytest
 import torch
 import yaml
 
-import os.path as osp
+from pathlib import Path
 
 from model.config import Config
 from model.marionet_modules import TargetEncoder, Decoder
@@ -10,9 +10,9 @@ from model.marionet_modules import TargetEncoder, Decoder
 
 @pytest.fixture
 def config_path():
-    project_dir = osp.abspath(osp.pardir(__file__))
+    project_dir = Path(__file__).parent
 
-    return osp.join(project_dir, 'model/config/config.yaml')
+    return str(project_dir / 'model/config/config.yaml')
 
 
 @pytest.fixture
