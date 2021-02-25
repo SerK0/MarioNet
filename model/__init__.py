@@ -1,0 +1,1 @@
+from .marionet_modules import Discriminator

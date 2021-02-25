@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 
 
-def pairwise(iterable: tp.Iterable[tp.Any]) -> tp.Iterable[tuple[tp.Any, tp.Any]]:
+def pairwise(iterable: tp.Iterable[tp.Any]) -> tp.Iterable[tp.Tuple[tp.Any, tp.Any]]:
     """
     s -> (s0,s1), (s1,s2), (s2, s3), ...
     Code taken from https://docs.python.org/3/library/itertools.html
