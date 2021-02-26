@@ -9,6 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from skimage import io
 
+from .config import Config
+
 np.random.seed(1)
 
 
@@ -96,23 +98,21 @@ class MarioNetDataset(Dataset):
 
 
 if __name__ == "__main__":
-    folder = "/home/serk0/Business/new_live/VoxCeleb1/"
-    faces_structure = "Faces/{0}/1.6/{1}/*"
-    identity_structure = "Faces/"
-    video_structue = "Faces/{0}/1.6/"
-    n_target_image = 4
-    image_size = 128
+    import sys
+
+    print(sys.path)
+    from pathlib import Path
+
+    cfg = Config.from_file(Path(__file__).parent / "config/config.yaml")
 
     marionet_dataset = MarioNetDataset(
-        folder,
-        faces_structure,
-        identity_structure,
-        video_structue,
-        n_target_image,
-        image_size,
+        cfg.dataloader.folder,
+        cfg.dataloader.faces_structure,
+        cfg.dataloader.identity_structure,
+        cfg.dataloader.video_structue,
+        cfg.dataloader.n_target_image,
+        cfg.dataloader.image_size,
     )
-
-    # print(marionet_dataset[3]["target_images"].size())
 
     dl = DataLoader(marionet_dataset, batch_size=4)
 
