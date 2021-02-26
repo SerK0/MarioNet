@@ -1,5 +1,5 @@
 device: cuda
-dataloader:
+dataset:
     folder: "/home/serk0/Business/new_live/VoxCeleb1/"
     faces_structure: "Faces/{0}/1.6/{1}/*"
     identity_structure: "Faces/"
