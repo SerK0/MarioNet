@@ -2,43 +2,23 @@ import pytest
 import torch
 import yaml
 
+from pathlib import Path
+
 from model.config import Config
 from model.marionet_modules import TargetEncoder, Decoder
 
 
 @pytest.fixture
-def config():
-    return Config(
-        yaml.load(
-            """
-        model:
-            TargetEncoder:
-                image_channels: 3
-                landmark_channels: 2
-                downsampling_channels:
-                    - 64
-                    - 128
-                    - 256
-                    - 512
-                    - 512
-                    - 512
-                upsampling_channels:
-                    - 512
-                    - 512
-                    - 256
-                    - 128
-                    - 64
-            Decoder:
-                channels:
-                    - 512
-                    - 512
-                    - 256
-                    - 128
-                    - 64
-                output_channels: 3
-        """
-        )
-    )
+def config_path():
+    project_dir = Path(__file__).parent
+
+    return str(project_dir / 'model/config/config.yaml')
+
+
+@pytest.fixture
+def config(config_path):
+    with open(config_path, 'r') as f:
+        return Config(yaml.load(f.read()))
 
 
 @pytest.fixture
@@ -84,4 +64,8 @@ def test_driver_encoder():
 
 
 def test_blender():
+    pass
+
+
+def test_discriminator():
     pass
