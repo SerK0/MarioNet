@@ -132,7 +132,6 @@ class Decoder(MarioNetModule):
       upsampling blocks. Note that the last upsampling block is followed by an additional
       convolution layer and a hyperbolic tangent activation function.'
     """
-
     def __init__(self, config: Config) -> None:
         """
         :param Config config: config
@@ -184,9 +183,13 @@ class Decoder(MarioNetModule):
 
 
 class DriverEncoder(MarioNetModule):
-    def __init__(self, config):
+    """
+    MarioNet DriverEncoder - consist of five residual downsampling blocks
+    """
+    def __init__(self, config: Config) -> None:
         """
-        Downsample Encoder of input driver image
+        :param Config config: config
+        :returns: None
         """
         super(DriverEncoder, self).__init__(config)
 
@@ -207,7 +210,11 @@ class DriverEncoder(MarioNetModule):
             for idx, hidden_dim in enumerate(hidden_features_dim[:-1])
         ])
 
-    def forward(self, rx):
+    def forward(self, rx: torch.Tensor) -> torch.Tensor:
+        """
+        :param rx: Driver feature tensor - Concatenation of image and landmark
+        :return: feature_map
+        """
         x = self.block1(rx)
         x = self.blocks(x)
         return x
@@ -217,7 +224,11 @@ class Blender(MarioNetModule):
     """
     Blender: mixes driver and target feature maps
     """
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
         super(Blender, self).__init__(config)
 
         self.self_attnblock = SelfAttentionBlock(
@@ -237,33 +248,12 @@ class Blender(MarioNetModule):
 
         self.inst_norm2 = nn.InstanceNorm2d(self.config.driver_feature_dim)
 
-    def forward(self, zx, Zy):
+    def forward(self, zx: torch.Tensor, Zy: torch.Tensor) -> torch.Tensor:
+        """
+        :param zx: driver feature Tensor
+        :param Zy: target feature Tensor
+        :return: mixed feature map with size equal to zx.size()
+        """
         mixed_feature = self.self_attnblock(zx, Zy)
         normed = self.inst_norm1(mixed_feature)
         return self.inst_norm2(normed + self.conv(normed))
-
-
-class Discriminator(MarioNetModule):
-    def __init__(self, config):
-        super(Discriminator, self).__init__(config)
-
-        modules = [
-            ResBlockDown(self.config.channels[0], self.config.channels[1]),
-            ResBlockDown(self.config.channels[1], self.config.channels[2]),
-            ResBlockDown(self.config.channels[2], self.config.channels[3]),
-            ResBlockDown(self.config.channels[3], self.config.channels[4]),
-        ]
-
-        modules += [nn.Conv2d(self.config.channels[-1], 1, 3, 1)]
-
-        self.model = nn.ModuleList(modules)
-
-    def forward(self, x):
-
-        intermediate_features = []
-
-        for module in self.model:
-            x = module(x)
-            intermediate_features.append(x)
-
-        return torch.sigmoid(x), intermediate_features
