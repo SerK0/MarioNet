@@ -10,9 +10,8 @@ from model.marionet_modules import TargetEncoder, Decoder
 
 @pytest.fixture
 def config_path():
-    project_dir = Path(__file__).parent
-
-    return str(project_dir / 'model/config/config.yaml')
+    project_dir = Path(__file__).parent.parent
+    return project_dir/'model/config/config.yaml'
 
 
 @pytest.fixture
@@ -31,12 +30,18 @@ def image_dim():
     return 224
 
 
-def test_target_encoder(batch_size, image_dim, config):
-    image_channels = 3
-    landmark_channels = 2
-    image = torch.rand(batch_size, image_channels, image_dim, image_dim)
-    landmark = torch.rand(batch_size, landmark_channels, image_dim, image_dim)
-    TargetEncoder(config)(image, landmark)
+@pytest.fixture
+def tensor_channels():
+    return 64
+
+
+@pytest.fixture
+def target_tensor(batch_size, tensor_channels, image_dim):
+    return torch.rand(batch_size, tensor_channels, image_dim, image_dim)
+
+
+def test_target_encoder(config, target_tensor):
+    TargetEncoder(config)(target_tensor)
 
 
 def test_decoder(batch_size, config):
@@ -55,7 +60,6 @@ def test_decoder(batch_size, config):
         )
         resolution *= 2
 
-    target_encoder_feature_maps = list(reversed(target_encoder_feature_maps))
     Decoder(config)(blender_output, target_encoder_feature_maps)
 
 
