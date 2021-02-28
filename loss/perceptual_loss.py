@@ -1,11 +1,14 @@
 import urllib.request
 import shutil
+import typing as tp
 
 import torch
 import torch.nn as nn
 import torchvision
 
 from pathlib import Path
+
+from .feature_map_loss import FeatureMapLoss
 
 
 class PerceptualLossVGG19(nn.Module):
@@ -220,13 +223,19 @@ class PerceptualLoss:
     After that compares outputed feature maps with L1 loss.
     """
 
-    def __init__(self, cnn: nn.Module) -> None:
+    def __init__(
+        self,
+        cnn: nn.Module,
+        criterion: tp.Optional[
+            tp.Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        ] = None,
+    ) -> None:
         """
         :param nn.Module cnn: CNN to parse images
         :returns: None
         """
         self.cnn = cnn
-        self.criterion = nn.L1Loss()
+        self.criterion = FeatureMapLoss(criterion)
 
     def __call__(self, output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -239,8 +248,4 @@ class PerceptualLoss:
         """
         output_feature_maps = self.cnn(output)
         target_feature_maps = self.cnn(target)
-        feature_maps = zip(output_feature_maps, target_feature_maps)
-        return sum(
-            self.criterion(output_feature_map, target_feature_map)
-            for output_feature_map, target_feature_map in feature_maps
-        )
+        return self.criterion(output_feature_maps, target_feature_maps)
