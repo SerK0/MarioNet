@@ -13,7 +13,7 @@ def test_dataloader():
         cfg.dataset.faces_structure,
         cfg.dataset.identity_structure,
         cfg.dataset.video_structure,
-        cfg.dataset.n_target_image,
+        cfg.dataset.n_target_images,
         cfg.dataset.image_size,
     )
 
@@ -41,7 +41,3 @@ def test_dataloader():
         cfg.dataset.image_size,
         cfg.dataset.image_size,
     ]
-
-
-if __name__ == "__main__":
-    test_dataloader()
