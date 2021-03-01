@@ -2,7 +2,13 @@ import torch
 import torch.nn as nn
 
 from .config import Config
-from .marionet_modules import TargetEncoder, Decoder, DriverEncoder, Blender
+from .marionet_modules import (
+    ToTensorProjector,
+    TargetEncoder,
+    Decoder,
+    DriverEncoder,
+    Blender,
+)
 
 
 class MarioNet(nn.Module):
@@ -20,14 +26,7 @@ class MarioNet(nn.Module):
         :returns: None
         """
         super(MarioNet, self).__init__()
-        self.config = config.model.MarioNet
-
-        self.tensor_conv = nn.Conv2d(
-            in_channels=self.config.image_channels + self.config.landmark_channels,
-            out_channels=self.config.tensor_channels,
-            kernel_size=3,
-            padding=1,
-        )
+        self.to_tensor = ToTensorProjector(config)
         self.target_encoder = TargetEncoder(config)
         self.driver_encoder = DriverEncoder(config)
         self.blender = Blender(config)
@@ -53,16 +52,14 @@ class MarioNet(nn.Module):
         Here B - batch size, C - image channels (i.e. self.config.in_channels), L - landmarks channels,
         N - number of target images for few-shot reenactment, W/H - image width/height.
         """
-        driver_tensor = torch.cat([driver_image, driver_landmarks], dim=1)
-        driver_tensor = self.tensor_conv(driver_tensor)
+        driver_tensor = self.to_tensor(driver_image, driver_landmarks)
         zx = self.driver_encoder(driver_tensor)
 
         batch_size, num_targets, image_channels, width, height = target_image.shape
         target_image = target_image.view(-1, image_channels, width, height)
         _, _, landmark_channels, _, _ = target_landmarks.shape
         target_landmarks = target_landmarks.view(-1, landmark_channels, width, height)
-        target_tensor = torch.cat([target_image, target_landmarks], dim=1)
-        target_tensor = self.tensor_conv(target_tensor)
+        target_tensor = self.to_tensor(target_image, target_landmarks)
         s, zy = self.target_encoder(target_tensor)
 
         s = [

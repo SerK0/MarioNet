@@ -31,6 +31,35 @@ class MarioNetModule(nn.Module):
         self.config = config["model"][self.__class__.__name__]
 
 
+class ToTensorProjector(MarioNetModule):
+    """
+    Projects image and landmark into intermediate tensor representation.
+    """
+
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
+        super(ToTensorProjector, self).__init__(config)
+        self.project = nn.Conv2d(
+            in_channels=self.config.image_channels + self.config.landmark_channels,
+            out_channels=self.config.tensor_channels,
+            kernel_size=3,
+            padding=1,
+        )
+
+    def forward(self, image: torch.Tensor, landmarks: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor image: image
+        :param torch.Tenosr landmarks: landmarks
+        :returns: intermediate representation
+        :rtype: torch.Tensor
+        """
+        tensor = torch.cat([image, landmarks], dim=1)
+        return self.project(tensor)
+
+
 class DriverEncoder(MarioNetModule):
     """
     MarioNet DriverEncoder - consist of five residual downsampling blocks
@@ -196,6 +225,7 @@ class Decoder(MarioNetModule):
       upsampling blocks. Note that the last upsampling block is followed by an additional
       convolution layer and a hyperbolic tangent activation function.'
     """
+
     def __init__(self, config: Config) -> None:
         """
         :param Config config: config

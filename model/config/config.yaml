@@ -50,7 +50,7 @@ model:
       - 512
       - 228
       - 228
-  MarioNet:
+  ToTensorProjector:
     image_channels: 3
     landmark_channels: 3
     tensor_channels: 64
