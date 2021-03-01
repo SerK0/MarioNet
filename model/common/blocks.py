@@ -37,9 +37,9 @@ class ResBlockDown(nn.Module):
         )
 
         self.conv_downsample = nn.Sequential(
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.AvgPool2d(kernel_size=2),
         )
@@ -72,11 +72,11 @@ class ResBlockUp(nn.Module):
 
         self.conv_upsample = nn.Sequential(
             nn.InstanceNorm2d(in_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.InstanceNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
         )
 
@@ -111,7 +111,7 @@ class UNetResBlockUp(nn.Module):
 
         self.upsample = nn.Sequential(
             nn.InstanceNorm2d(in_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
         )
 
@@ -123,7 +123,7 @@ class UNetResBlockUp(nn.Module):
                 padding=1,
             ),
             nn.InstanceNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
         )
 
