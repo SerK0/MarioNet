@@ -11,6 +11,9 @@ from torchvision import transforms
 
 
 class MarioNetDataset(Dataset):
+    '''
+        Image/Landmark dataset for training MarioNet
+    '''
     def __init__(
         self,
         folder: str,
@@ -21,12 +24,12 @@ class MarioNetDataset(Dataset):
         image_size: int = 128,
     ):
         '''
-            :nparam folder: Path to root of dataset.
-            :nparam faces_structure: Subfolder structure in Faces subfolder of self.folder path.
-            :nparam identity_structure: Path to identies
-            :nparam video_structure: Path to videos of particular identity
-            :nparam n_target_images: Number of target images to sample
-            :nparam image_size: Resize image to image_size x image_size
+            :param folder: Path to root of dataset.
+            :param faces_structure: Subfolder structure in Faces subfolder of self.folder path.
+            :param identity_structure: Path to identies
+            :param video_structure: Path to videos of particular identity
+            :param n_target_images: Number of target images to sample
+            :param image_size: Resize image to image_size x image_size
         '''
         self.folder = folder
         self.faces = faces_structure
@@ -97,5 +100,8 @@ class MarioNetDataset(Dataset):
         return result
 
     def __resize_image(self, image: np.array) -> torch.Tensor:
+        '''
+           :param image: Image in numpy format, CxHxW. 
+        '''
         image = torch.tensor(image)
         return self.transforms(image)
