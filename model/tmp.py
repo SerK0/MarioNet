@@ -1,2 +1,0 @@
-def very_very_very_very_very_very_very_very_very_very_very_very_very_very_long_name_very_very_very_very_very_very_very_very_very_very_very_very_very_very_long_name():
-    return 1
