@@ -11,9 +11,7 @@ from .preprocess import LandmarkExtractor
 
 
 def extract_landmarks():
-    '''
-        Extract landmarks for images from subfolders
-    '''
+
     cfg = Config.from_file(Path(__file__).parent.parent / "model/config/config.yaml")
 
     path_to_images = glob(
