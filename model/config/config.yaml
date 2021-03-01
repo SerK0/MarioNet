@@ -1,4 +1,16 @@
 device: cuda
+dataset:
+    folder: "/home/serk0/Business/new_live/VoxCeleb1/"
+    faces_structure: "Faces/{0}/1.6/{1}/*"
+    identity_structure: "Faces/"
+    video_structure: "Faces/{0}/1.6/"
+    n_target_images: 4
+    image_size: 128
+preprocess:
+    folder: "/home/serk0/Business/new_live/VoxCeleb1/"
+    dataset_structure: "Faces/*/*/*/*"
+    landmark_type: "3D"
+    device: "cpu"
 model:
     # MarioNet parameters grouped by main network components.
     # Groups are named after implementation classnames (i.e. CamelCase).
