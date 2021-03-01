@@ -1,13 +1,13 @@
 import os
-import numpy as np
 import re
-
-import torch
 from glob import glob
+
+import numpy as np
+import torch
 from PIL import Image
+from skimage import io
 from torch.utils.data import Dataset
 from torchvision import transforms
-from skimage import io
 
 
 class MarioNetDataset(Dataset):
@@ -17,14 +17,22 @@ class MarioNetDataset(Dataset):
         faces_structure: str,
         identity_structure: str,
         video_structure: str,
-        n_target_image=4,
-        image_size=128,
+        n_target_images: int = 4,
+        image_size: int = 128,
     ):
+        '''
+            :nparam folder: Path to root of dataset.
+            :nparam faces_structure: Subfolder structure in Faces subfolder of self.folder path.
+            :nparam identity_structure: Path to identies
+            :nparam video_structure: Path to videos of particular identity
+            :nparam n_target_images: Number of target images to sample
+            :nparam image_size: Resize image to image_size x image_size
+        '''
         self.folder = folder
         self.faces = faces_structure
         self.identity_structure = os.listdir(os.path.join(folder, identity_structure))
         self.video_structure = video_structure
-        self.n_target_image = n_target_image
+        self.n_target_images = n_target_images
         self.image_size = image_size
 
         transformations = torch.nn.Sequential(
@@ -37,7 +45,7 @@ class MarioNetDataset(Dataset):
     def __len__(self):
         return len(self.identity_structure)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> dict:
         source_identity = self.identity_structure[index]
         target_identity = np.random.choice(self.identity_structure, size=1)[0]
         target_identity_subfolders = os.listdir(
@@ -61,7 +69,7 @@ class MarioNetDataset(Dataset):
 
         source_face_path = np.random.choice(path_to_source_faces, size=1)[0]
         target_face_path = np.random.choice(
-            path_to_target_faces, size=self.n_target_image
+            path_to_target_faces, size=self.n_target_images
         )
 
         source_image = io.imread(source_face_path)
@@ -88,6 +96,6 @@ class MarioNetDataset(Dataset):
 
         return result
 
-    def __resize_image(self, image):
+    def __resize_image(self, image: np.array) -> torch.Tensor:
         image = torch.tensor(image)
-        return self.transforms.forward(image)
+        return self.transforms(image)
