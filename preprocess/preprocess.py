@@ -7,10 +7,14 @@ from skimage import io
 
 
 class LandmarkExtractor:
-    def __init__(self, landmark_type: str, device: str, extract_faces: bool = False):
+    """
+    Class for landmark extraction from images with faces
+    """
+    def __init__(self, landmark_type: str, device: str, extract_faces: bool = False)->None:
         """
-        :param landmark_type: value -> '2D' or '3D'
-        :param device: value -> 'cpu' or 'cuda'
+        :param str landmark_type: value -> '2D' or '3D'
+        :param str device: value -> 'cpu' or 'cuda'
+        :returns: None
         """
 
         assert landmark_type == "2D" or landmark_type == "3D"
@@ -36,7 +40,8 @@ class LandmarkExtractor:
 
     def __call__(self, input_path: str) -> np.array:
         """
-        :param input_path: path to image
+        :param str input_path: path to image
+        :rtype: np.array
         """
 
         input_image = io.imread(input_path)
@@ -61,6 +66,7 @@ class LandmarkExtractor:
         """
         :param input_image: np.array H x W x C
         :param predicted_landmarks: np.array 68 x 3 for 3D
+        :rtype: np.array
         """
 
         output_image = np.zeros_like(input_image)

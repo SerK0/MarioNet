@@ -4,6 +4,7 @@ from glob import glob
 
 import numpy as np
 import torch
+import typing as tp
 from PIL import Image
 from skimage import io
 from torch.utils.data import Dataset
@@ -11,9 +12,9 @@ from torchvision import transforms
 
 
 class MarioNetDataset(Dataset):
-    '''
-        Image/Landmark dataset for training MarioNet
-    '''
+    """
+    Image/Landmark dataset for training MarioNet
+    """
     def __init__(
         self,
         folder: str,
@@ -22,15 +23,16 @@ class MarioNetDataset(Dataset):
         video_structure: str,
         n_target_images: int = 4,
         image_size: int = 128,
-    ):
-        '''
-            :param folder: Path to root of dataset.
-            :param faces_structure: Subfolder structure in Faces subfolder of self.folder path.
-            :param identity_structure: Path to identies
-            :param video_structure: Path to videos of particular identity
-            :param n_target_images: Number of target images to sample
-            :param image_size: Resize image to image_size x image_size
-        '''
+    ) -> None:
+        """
+        :param folder: Path to root of dataset.
+        :param faces_structure: Subfolder structure in Faces subfolder of self.folder path.
+        :param identity_structure: Path to identies
+        :param video_structure: Path to videos of particular identity
+        :param n_target_images: Number of target images to sample
+        :param image_size: Resize image to image_size x image_size
+        :returns: None
+        """
         self.folder = folder
         self.faces = faces_structure
         self.identity_structure = os.listdir(os.path.join(folder, identity_structure))
@@ -45,10 +47,10 @@ class MarioNetDataset(Dataset):
 
         self.transforms = torch.jit.script(transformations)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.identity_structure)
 
-    def __getitem__(self, index: int) -> dict:
+    def __getitem__(self, index: int) -> tp.Dict[str, torch.Tensor]:
         source_identity = self.identity_structure[index]
         target_identity = np.random.choice(self.identity_structure, size=1)[0]
         target_identity_subfolders = os.listdir(
@@ -100,8 +102,8 @@ class MarioNetDataset(Dataset):
         return result
 
     def __resize_image(self, image: np.array) -> torch.Tensor:
-        '''
-           :param image: Image in numpy format, CxHxW. 
-        '''
+        """
+        :param image: Image in numpy format, C x H x W. 
+        """
         image = torch.tensor(image)
         return self.transforms(image)
