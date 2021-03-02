@@ -31,6 +31,64 @@ class MarioNetModule(nn.Module):
         self.config = config["model"][self.__class__.__name__]
 
 
+class ToTensorProjector(MarioNetModule):
+    """
+    Projects image and landmark into intermediate tensor representation.
+    """
+
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
+        super(ToTensorProjector, self).__init__(config)
+        self.project = nn.Conv2d(
+            in_channels=self.config.image_channels + self.config.landmark_channels,
+            out_channels=self.config.tensor_channels,
+            kernel_size=3,
+            padding=1,
+        )
+
+    def forward(self, image: torch.Tensor, landmarks: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor image: image
+        :param torch.Tenosr landmarks: landmarks
+        :returns: intermediate representation
+        :rtype: torch.Tensor
+        """
+        tensor = torch.cat([image, landmarks], dim=1)
+        return self.project(tensor)
+
+
+class DriverEncoder(MarioNetModule):
+    """
+    MarioNet DriverEncoder - consist of five residual downsampling blocks
+    """
+
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
+        super(DriverEncoder, self).__init__(config)
+
+        assert len(self.config.hidden_features_dim) == 5
+        blocks = []
+        for in_channels, out_channels in pairwise(self.config.hidden_features_dim):
+            blocks.append(ResBlockDown(in_channels, out_channels))
+
+        self.blocks = nn.Sequential(*blocks)
+
+    def forward(self, driver_tensor: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor driver_tensor: driver tensor, shape [B, C, W, H]
+        :rtype: torch.Tensor
+
+        Here B - batch size, C - tensor channels, W/H - image width/height.
+        """
+        return self.blocks(driver_tensor)
+
+
 class TargetEncoder(MarioNetModule):
     """
     Target encoder. Quote from original paper:
@@ -45,12 +103,6 @@ class TargetEncoder(MarioNetModule):
         :returns: None
         """
         super(TargetEncoder, self).__init__(config)
-        self.input_conv = nn.Conv2d(
-            self.config.image_channels + self.config.landmark_channels,
-            out_channels=self.config.downsampling_channels[0],
-            kernel_size=3,
-            padding=1,
-        )
 
         # '...adopts a U-Net style architecture including five downsampling blocks
         #   and four upsampling blocks with skip connections'
@@ -84,7 +136,8 @@ class TargetEncoder(MarioNetModule):
         )
 
     def forward(
-        self, target_image: torch.Tensor, landmark_image: torch.Tensor
+        self,
+        target_tensor: torch.Tensor,
     ) -> tp.Tuple[tp.List[torch.Tensor], torch.Tensor]:
         """
         Forward pass of TargetEncoder.
@@ -95,27 +148,26 @@ class TargetEncoder(MarioNetModule):
         Normally parses single target image at a time, however, can be tricked with temporal
         increase of batch size.
 
-        :param torch.Tensor target_image: target image, shape [B, I, W, H]
-        :param torch.Tensor landmark_image: target image landmarks, shape [B, L, W, H]
+        :param torch.Tensor target_tensor: target tensor, shape [B, C, W, H]
         :returns:
           - list[torch.Tensor] S - feature maps to be used in decoder
           - torch.Tensor zy - TargetEncoder output feature map
         :rtype: tuple[list[torch.Tensor], torch.Tensor]
 
-        Here B - batch size, I - image_channels, L - landmark_channels, W - width, H - height.
+        Here B - batch size, C - tensor channels, W - width, H - height.
+        Target tensor is the product of convolutional layer from concatenated target image and
+        landmarks.
         """
-        x = torch.cat([target_image, landmark_image], dim=1)
-        x = F.relu(self.input_conv(x))
 
         feature_maps = []
         for block in self.downsampling_blocks:
-            x = block(x)
-            feature_maps.append(x)
+            target_tensor = block(target_tensor)
+            feature_maps.append(target_tensor)
 
         for block, skip_connection in zip(self.upsampling_blocks, feature_maps[-2::-1]):
-            x = block(x, skip_connection)
+            target_tensor = block(target_tensor, skip_connection)
 
-        optical_flow = torch.tanh(self.output_conv(x))
+        optical_flow = torch.tanh(self.output_conv(target_tensor))
         *unwarped_s, zy = feature_maps
         reversed_s = []
         for feature_map in reversed(unwarped_s):
@@ -125,6 +177,47 @@ class TargetEncoder(MarioNetModule):
         return list(reversed(reversed_s)), zy
 
 
+class Blender(MarioNetModule):
+    """
+    Blender: mixes driver and target feature maps
+    """
+
+    def __init__(self, config: Config) -> None:
+        """
+        :param Config config: config
+        :returns: None
+        """
+        super(Blender, self).__init__(config)
+
+        self.self_attnblock = SelfAttentionBlock(
+            self.config.driver_feature_dim,
+            self.config.target_feature_dim,
+            self.config.attention_feature_dim,
+        )
+
+        self.inst_norm1 = nn.InstanceNorm2d(self.config.driver_feature_dim)
+
+        self.conv = nn.Conv2d(
+            self.config.driver_feature_dim,
+            self.config.driver_feature_dim,
+            kernel_size=3,
+            padding=1,
+        )
+
+        self.inst_norm2 = nn.InstanceNorm2d(self.config.driver_feature_dim)
+
+    def forward(self, zx: torch.Tensor, Zy: torch.Tensor) -> torch.Tensor:
+        """
+        :param torch.Tensor zx: driver encoder output
+        :param torch.Tensor zy: target encoder output
+        :return: mixed feature map with size equal to zx.size()
+        :rtype: torch.Tensor
+        """
+        mixed_feature = self.self_attnblock(zx, Zy)
+        normed = self.inst_norm1(mixed_feature)
+        return self.inst_norm2(normed + self.conv(normed))
+
+
 class Decoder(MarioNetModule):
     """
     Decoder. Quote from the paper:
@@ -132,6 +225,7 @@ class Decoder(MarioNetModule):
       upsampling blocks. Note that the last upsampling block is followed by an additional
       convolution layer and a hyperbolic tangent activation function.'
     """
+
     def __init__(self, config: Config) -> None:
         """
         :param Config config: config
@@ -144,7 +238,9 @@ class Decoder(MarioNetModule):
         assert len(feature_map_channels) == 4
         assert len(self.config.channels) == 5
         channels = zip(
-            self.config.channels[:-1], feature_map_channels, self.config.channels[1:]
+            self.config.channels[:-1],
+            feature_map_channels,
+            self.config.channels[1:],
         )
 
         decoder_blocks = []
@@ -175,85 +271,9 @@ class Decoder(MarioNetModule):
         """
         x = blender_output
         for block, feature_map in zip(
-            self.decoder_blocks, reversed(target_encoder_feature_maps)
+            self.decoder_blocks,
+            target_encoder_feature_maps,
         ):
             x = block(x, feature_map)
 
         return torch.tanh(self.output_conv(x))
-
-
-class DriverEncoder(MarioNetModule):
-    """
-    MarioNet DriverEncoder - consist of five residual downsampling blocks
-    """
-    def __init__(self, config: Config) -> None:
-        """
-        :param Config config: config
-        :returns: None
-        """
-        super(DriverEncoder, self).__init__(config)
-
-        input_feature_dim = self.config["input_feature_dim"]
-        hidden_features_dim = self.config["hidden_features_dim"]
-
-        assert self.config["depth"] == len(
-            self.config["hidden_features_dim"]
-        ), "inconsistent depth of driver encoder and len of hidden dims"
-
-        self.block1 = ResBlockDown(input_feature_dim, hidden_features_dim[0])
-
-        self.blocks = nn.Sequential(*[
-            ResBlockDown(
-                hidden_features_dim[idx],
-                hidden_features_dim[idx + 1],
-            )
-            for idx, hidden_dim in enumerate(hidden_features_dim[:-1])
-        ])
-
-    def forward(self, rx: torch.Tensor) -> torch.Tensor:
-        """
-        :param rx: Driver feature tensor - Concatenation of image and landmark
-        :return: feature_map
-        """
-        x = self.block1(rx)
-        x = self.blocks(x)
-        return x
-
-
-class Blender(MarioNetModule):
-    """
-    Blender: mixes driver and target feature maps
-    """
-    def __init__(self, config: Config) -> None:
-        """
-        :param Config config: config
-        :returns: None
-        """
-        super(Blender, self).__init__(config)
-
-        self.self_attnblock = SelfAttentionBlock(
-            self.config.driver_feature_dim,
-            self.config.target_feature_dim,
-            self.config.attention_feature_dim,
-        )
-
-        self.inst_norm1 = nn.InstanceNorm2d(self.config.driver_feature_dim)
-
-        self.conv = nn.Conv2d(
-            self.config.driver_feature_dim,
-            self.config.driver_feature_dim,
-            kernel_size=3,
-            padding=1,
-        )
-
-        self.inst_norm2 = nn.InstanceNorm2d(self.config.driver_feature_dim)
-
-    def forward(self, zx: torch.Tensor, Zy: torch.Tensor) -> torch.Tensor:
-        """
-        :param zx: driver feature Tensor
-        :param Zy: target feature Tensor
-        :return: mixed feature map with size equal to zx.size()
-        """
-        mixed_feature = self.self_attnblock(zx, Zy)
-        normed = self.inst_norm1(mixed_feature)
-        return self.inst_norm2(normed + self.conv(normed))
