@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 import typing as tp
 
-from .config import Config
+from ..config import Config
 
 from .common.utils import pairwise, warp_image
 from .common.blocks import (

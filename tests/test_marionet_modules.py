@@ -4,19 +4,19 @@ import yaml
 
 from pathlib import Path
 
-from model.config import Config
-from model.marionet_modules import TargetEncoder, Decoder
+from marionet.config import Config
+from marionet.model.marionet_modules import TargetEncoder, Decoder
 
 
 @pytest.fixture
 def config_path():
     project_dir = Path(__file__).parent.parent
-    return project_dir/'model/config/config.yaml'
+    return project_dir / "config.yaml"
 
 
 @pytest.fixture
 def config(config_path):
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         return Config(yaml.load(f.read()))
 
 

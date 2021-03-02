@@ -1,5 +1,6 @@
 import urllib.request
 import shutil
+import typing as tp
 
 import torch
 import torch.nn as nn
@@ -49,7 +50,7 @@ class PerceptualLossVGG19(nn.Module):
 
     def forward(
         self, x: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tp.Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass.
 
@@ -176,7 +177,7 @@ class PerceptualLossVGG_VD_16(nn.Module):
 
     def forward(
         self, data: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tp.Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass.
 
