@@ -31,9 +31,9 @@ class MarioNetModule(nn.Module):
         self.config = config["model"][self.__class__.__name__]
 
 
-class ToTensorProjector(MarioNetModule):
+class ConvMerger(MarioNetModule):
     """
-    Projects image and landmark into intermediate tensor representation.
+    Merges image and landmark and projects them into intermediate tensor representation.
     """
 
     def __init__(self, config: Config) -> None:
@@ -41,8 +41,8 @@ class ToTensorProjector(MarioNetModule):
         :param Config config: config
         :returns: None
         """
-        super(ToTensorProjector, self).__init__(config)
-        self.project = nn.Conv2d(
+        super(ConvMerger, self).__init__(config)
+        self.conv_projection = nn.Conv2d(
             in_channels=self.config.image_channels + self.config.landmark_channels,
             out_channels=self.config.tensor_channels,
             kernel_size=3,
@@ -56,8 +56,8 @@ class ToTensorProjector(MarioNetModule):
         :returns: intermediate representation
         :rtype: torch.Tensor
         """
-        tensor = torch.cat([image, landmarks], dim=1)
-        return self.project(tensor)
+        merged = torch.cat([image, landmarks], dim=1)
+        return self.conv_projection(merged)
 
 
 class DriverEncoder(MarioNetModule):
