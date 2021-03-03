@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from .common.blocks import ResBlockDown
-from .config.config import Config
+from ..config import Config
 
 import typing as tp
 
@@ -11,6 +11,7 @@ class Discriminator(nn.Module):
     """
     MarioNET Discriminator
     """
+
     def __init__(self, config: Config) -> None:
         """
         :param Config config: config

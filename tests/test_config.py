@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from model.config import Config
+from marionet.config import Config
 
 
 def test_config():

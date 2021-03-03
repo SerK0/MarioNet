@@ -1,7 +1,7 @@
 import torch
 import pytest
 
-from loss.perceptual_loss import (
+from marionet.loss.perceptual_loss import (
     PerceptualLossVGG19,
     PerceptualLossVGG_VD_16,
     PerceptualLoss,
