@@ -15,6 +15,7 @@ class MarioNetDataset(Dataset):
     """
     Image/Landmark dataset for training MarioNet
     """
+
     def __init__(
         self,
         folder: str,
@@ -103,7 +104,7 @@ class MarioNetDataset(Dataset):
 
     def __resize_image(self, image: np.array) -> torch.Tensor:
         """
-        :param image: Image in numpy format, C x H x W. 
+        :param image: Image in numpy format, C x H x W.
         """
         image = torch.tensor(image)
         return self.transforms(image)

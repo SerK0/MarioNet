@@ -1,12 +1,11 @@
 from pathlib import Path
-from torch.utils.data import DataLoader
 
-from model.dataset import MarioNetDataset
-from model.config import Config
+from marionet.dataset import MarioNetDataset
+from marionet.config import Config
 
 
 def test_dataloader():
-    cfg = Config.from_file(Path(__file__).parent.parent / "model/config/config.yaml")
+    cfg = Config.from_file(Path(__file__).parent.parent / "config.yaml")
 
     marionet_dataset = MarioNetDataset(
         cfg.dataset.folder,
