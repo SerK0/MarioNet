@@ -10,7 +10,7 @@ from model.config import Config
 from .preprocess import LandmarkExtractor
 
 
-def extract_landmarks():
+def extract_landmarks() -> None:
     """
     Extracting landmark for images from subfolders
     """
