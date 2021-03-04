@@ -56,8 +56,8 @@ class GeneratorLoss:
         :returns: overall generator loss
         :rtype: torch.Tensor
         """
-        output_tensor = self.generator.to_tensor(output, target_landmarks)
-        target_tensor = self.generator.to_tensor(target, target_landmarks)
+        output_tensor = self.generator.conv_merger(output, target_landmarks)
+        target_tensor = self.generator.conv_merger(target, target_landmarks)
         output_realness, output_feature_maps = self.discriminator(output_tensor)
         _, target_feature_maps = self.discriminator(target_tensor)
         return (
