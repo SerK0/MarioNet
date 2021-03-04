@@ -54,6 +54,9 @@ class Discriminator(nn.Module):
             - PatchGAN like output of Discriminator: torch.Tensor
             - Intermediate features of Discriminator: list[torch.Tensor]
         """
+
+        landmarks = torch.squeeze(landmarks, dim=1)
+
         x = self.conv_merger(image, landmarks)
 
         intermediate_features = []
