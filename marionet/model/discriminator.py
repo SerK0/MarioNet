@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 
+from .marionet_modules import ConvMerger
 from .common.blocks import ResBlockDown
+from .common.utils import pairwise
 from ..config import Config
 
 import typing as tp
@@ -18,33 +20,41 @@ class Discriminator(nn.Module):
         :returns: None
         """
         super(Discriminator, self).__init__()
+        self.config = config.model.Discriminator
 
-        self.config = config["model"][self.__class__.__name__]
+        self.conv_merger = ConvMerger(config)
 
-        modules = [
-            ResBlockDown(self.config.channels[0], self.config.channels[1]),
-            ResBlockDown(self.config.channels[1], self.config.channels[2]),
-            ResBlockDown(self.config.channels[2], self.config.channels[3]),
-            ResBlockDown(self.config.channels[3], self.config.channels[4]),
-        ]
+        self.blocks = nn.ModuleList(
+            [
+                ResBlockDown(in_channels, out_channels)
+                for in_channels, out_channels in pairwise(self.config.channels)
+            ]
+        )
 
-        modules += [nn.Conv2d(self.config.channels[-1], 1, 3, 1)]
+        self.output_conv = nn.Conv2d(
+            in_channels=self.config.channels[-1],
+            out_channels=2,
+            kernel_size=3,
+            padding=1,
+        )
 
-        self.model = nn.ModuleList(modules)
-
-    def forward(self, x: torch.Tensor) -> tp.Tuple[torch.Tensor, tp.List[torch.Tensor]]:
+    def forward(
+        self, image: torch.Tensor, landmarks: torch.Tensor
+    ) -> tp.Tuple[torch.Tensor, tp.List[torch.Tensor]]:
         """
         Discriminator forward pass
 
-        :param x: Generator (or Real) image projected to 64 dim space
+        :param torch.Tensor image: Generator (or Real) image
+        :param torch.Tensor landmarks: Target image landmarks
         :return:
             - PatchGAN like output of Discriminator: torch.Tensor
             - Intermediate features of Discriminator: list[torch.Tensor]
         """
-        intermediate_features = []
+        x = self.conv_merger(image, landmarks)
 
-        for module in self.model:
-            x = module(x)
+        intermediate_features = []
+        for block in self.blocks:
+            x = block(x)
             intermediate_features.append(x)
 
-        return torch.sigmoid(x), intermediate_features
+        return torch.sigmoid(self.output_conv(x)), intermediate_features

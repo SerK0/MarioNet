@@ -1,6 +1,6 @@
 import torch
 
-from marionet.model import MarioNet, Discriminator
+from marionet.model import Discriminator
 
 from .perceptual_loss import (
     PerceptualLossVGG19,
@@ -20,7 +20,6 @@ class GeneratorLoss:
 
     def __init__(
         self,
-        generator: MarioNet,
         discriminator: Discriminator,
         lambda_p: float = 0.01,
         lambda_pf: float = 0.01,
@@ -33,10 +32,9 @@ class GeneratorLoss:
         :param float lambda_fm: coefficient for discriminator feature map loss
         :returns: None
         """
-        self.generator = generator
         self.discriminator = discriminator
 
-        self.gan_loss = GeneratorHingeLoss(discriminator)
+        self.gan_loss = GeneratorHingeLoss()
 
         self.vgg19_loss = PerceptualLoss(PerceptualLossVGG19())
         self.lambda_p = lambda_p
@@ -56,12 +54,12 @@ class GeneratorLoss:
         :returns: overall generator loss
         :rtype: torch.Tensor
         """
-        output_tensor = self.generator.conv_merger(output, target_landmarks)
-        target_tensor = self.generator.conv_merger(target, target_landmarks)
-        output_realness, output_feature_maps = self.discriminator(output_tensor)
-        _, target_feature_maps = self.discriminator(target_tensor)
+        output_realness, output_feature_maps = self.discriminator(
+            output, target_landmarks
+        )
+        _, target_feature_maps = self.discriminator(target, target_landmarks)
         return (
-            -self.gan_loss(output_tensor)
+            -self.gan_loss(output_realness)
             + (self.lambda_p * self.vgg19_loss(output, target))
             + (self.lambda_pf * self.vgg_vd_16_loss(output, target))
             + (
