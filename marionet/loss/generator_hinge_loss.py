@@ -12,5 +12,4 @@ class GeneratorHingeLoss:
         :returns: hinge loss
         :rtype: torch.Tensor
         """
-        output_realness = output_realness[:, 0]
-        return -torch.mean(output_realness, dim=0)
+        return -torch.mean(output_realness)

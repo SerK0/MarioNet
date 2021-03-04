@@ -33,7 +33,7 @@ class Discriminator(nn.Module):
 
         self.output_conv = nn.Conv2d(
             in_channels=self.config.channels[-1],
-            out_channels=2,
+            out_channels=1,
             kernel_size=3,
             padding=1,
         )

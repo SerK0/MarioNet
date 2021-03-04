@@ -59,7 +59,7 @@ class GeneratorLoss:
         )
         _, target_feature_maps = self.discriminator(target, target_landmarks)
         return (
-            -self.gan_loss(output_realness)
+            self.gan_loss(output_realness)
             + (self.lambda_p * self.vgg19_loss(output, target))
             + (self.lambda_pf * self.vgg_vd_16_loss(output, target))
             + (
