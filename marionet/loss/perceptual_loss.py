@@ -219,7 +219,7 @@ class PerceptualLoss:
     """
     Preceptual loss class.
 
-    Takes input and target image and runs specified CNN on them.
+    Takes reenacted and driver images and runs specified CNN on them.
     After that compares outputed feature maps with L1 loss.
     """
 
@@ -237,15 +237,17 @@ class PerceptualLoss:
         self.cnn = cnn
         self.criterion = FeatureMapLoss(criterion)
 
-    def __call__(self, output: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, reenacted_image: torch.Tensor, driver_image: torch.Tensor
+    ) -> torch.Tensor:
         """
         Runs CNN and compares feature maps.
 
-        :param torch.Tensor output: GANs output
-        :param torch.Tensor target: target image
+        :param torch.Tensor reenacted_image: reenacted image (i.e. generator output)
+        :param torch.Tensor driver_image: driver image (i.e. ground-truth reenacted image)
         :returns: perceptual loss
         :rtype: torch.Tensor
         """
-        output_feature_maps = self.cnn(output)
-        target_feature_maps = self.cnn(target)
-        return self.criterion(output_feature_maps, target_feature_maps)
+        reenacted_feature_maps = self.cnn(reenacted_image)
+        driver_feature_maps = self.cnn(driver_image)
+        return self.criterion(reenacted_feature_maps, driver_feature_maps)
