@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from .marionet_modules import ConvMerger
 from .common.blocks import ResBlockDown
+from .common.conv_merger import ConvMerger
 from .common.utils import pairwise
 from ..config import Config
 
@@ -22,7 +22,11 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.config = config.model.Discriminator
 
-        self.conv_merger = ConvMerger(config)
+        self.conv_merger = ConvMerger(
+            self.config.image_channels,
+            self.config.landmarks_channels,
+            self.config.channels[0],
+        )
 
         self.blocks = nn.ModuleList(
             [
