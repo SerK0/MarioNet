@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from ..config import Config
 from .marionet_modules import (
-    ConvMerger,
     TargetEncoder,
     Decoder,
     DriverEncoder,
@@ -26,7 +25,6 @@ class MarioNet(nn.Module):
         :returns: None
         """
         super(MarioNet, self).__init__()
-        self.conv_merger = ConvMerger(config)
         self.target_encoder = TargetEncoder(config)
         self.driver_encoder = DriverEncoder(config)
         self.blender = Blender(config)
@@ -36,31 +34,27 @@ class MarioNet(nn.Module):
         self,
         target_image: torch.Tensor,
         target_landmarks: torch.Tensor,
-        driver_image: torch.Tensor,
         driver_landmarks: torch.Tensor,
     ) -> torch.Tensor:
         """
         MarioNet forward pass.
 
-        :param torch.Tensor driver: driver image, shape [B, C, W, H]
-        :param torch.Tensor driver_landmarks: driver landmarks, shape [B, L, W, H]
-        :param torch.Tensor target: target images, shape [B, N, C, W, H]
+        :param torch.Tensor target_image: target images, shape [B, N, C, W, H]
         :param torch.Tensor target_landmarks: target landmarks, shape [B, N, C, W, H]
+        :param torch.Tensor driver_landmarks: driver landmarks, shape [B, L, W, H]
         :returns: reenacted target image
         :rtype: torch.Tensor
 
         Here B - batch size, C - image channels (i.e. self.config.in_channels), L - landmarks channels,
         N - number of target images for few-shot reenactment, W/H - image width/height.
         """
-        driver_tensor = self.conv_merger(driver_image, driver_landmarks)
-        zx = self.driver_encoder(driver_tensor)
+        zx = self.driver_encoder(driver_landmarks)
 
         batch_size, num_targets, image_channels, width, height = target_image.shape
         target_image = target_image.view(-1, image_channels, width, height)
         _, _, landmark_channels, _, _ = target_landmarks.shape
         target_landmarks = target_landmarks.view(-1, landmark_channels, width, height)
-        target_tensor = self.conv_merger(target_image, target_landmarks)
-        s, zy = self.target_encoder(target_tensor)
+        s, zy = self.target_encoder(target_image, target_landmarks)
 
         s = [
             torch.mean(

@@ -13,6 +13,7 @@ from .common.blocks import (
     DecoderBlock,
     SelfAttentionBlock,
 )
+from .common.conv_merger import ConvMerger
 
 
 class MarioNetModule(nn.Module):
@@ -31,35 +32,6 @@ class MarioNetModule(nn.Module):
         self.config = config["model"][self.__class__.__name__]
 
 
-class ConvMerger(MarioNetModule):
-    """
-    Merges image and landmark and projects them into intermediate tensor representation.
-    """
-
-    def __init__(self, config: Config) -> None:
-        """
-        :param Config config: config
-        :returns: None
-        """
-        super(ConvMerger, self).__init__(config)
-        self.conv_projection = nn.Conv2d(
-            in_channels=self.config.image_channels + self.config.landmark_channels,
-            out_channels=self.config.tensor_channels,
-            kernel_size=3,
-            padding=1,
-        )
-
-    def forward(self, image: torch.Tensor, landmarks: torch.Tensor) -> torch.Tensor:
-        """
-        :param torch.Tensor image: image
-        :param torch.Tenosr landmarks: landmarks
-        :returns: intermediate representation
-        :rtype: torch.Tensor
-        """
-        merged = torch.cat([image, landmarks], dim=1)
-        return self.conv_projection(merged)
-
-
 class DriverEncoder(MarioNetModule):
     """
     MarioNet DriverEncoder - consist of five residual downsampling blocks
@@ -72,6 +44,13 @@ class DriverEncoder(MarioNetModule):
         """
         super(DriverEncoder, self).__init__(config)
 
+        self.input_conv = nn.Conv2d(
+            in_channels=self.config.landmarks_channels,
+            out_channels=self.config.hidden_features_dim[0],
+            kernel_size=3,
+            padding=1,
+        )
+
         assert len(self.config.hidden_features_dim) == 5
         blocks = []
         for in_channels, out_channels in pairwise(self.config.hidden_features_dim):
@@ -79,13 +58,14 @@ class DriverEncoder(MarioNetModule):
 
         self.blocks = nn.Sequential(*blocks)
 
-    def forward(self, driver_tensor: torch.Tensor) -> torch.Tensor:
+    def forward(self, driver_landmarks: torch.Tensor) -> torch.Tensor:
         """
-        :param torch.Tensor driver_tensor: driver tensor, shape [B, C, W, H]
+        :param torch.Tensor driver_landmarks: driver landmarks, shape [B, C, W, H]
         :rtype: torch.Tensor
 
-        Here B - batch size, C - tensor channels, W/H - image width/height.
+        Here B - batch size, C - landmarks channels, W/H - image width/height.
         """
+        driver_tensor = self.input_conv(driver_landmarks)
         return self.blocks(driver_tensor)
 
 
@@ -103,6 +83,12 @@ class TargetEncoder(MarioNetModule):
         :returns: None
         """
         super(TargetEncoder, self).__init__(config)
+
+        self.conv_merger = ConvMerger(
+            self.config.image_channels,
+            self.config.landmarks_channels,
+            self.config.downsampling_channels[0],
+        )
 
         # '...adopts a U-Net style architecture including five downsampling blocks
         #   and four upsampling blocks with skip connections'
@@ -137,7 +123,8 @@ class TargetEncoder(MarioNetModule):
 
     def forward(
         self,
-        target_tensor: torch.Tensor,
+        target_image: torch.Tensor,
+        target_landmarks: torch.Tensor,
     ) -> tp.Tuple[tp.List[torch.Tensor], torch.Tensor]:
         """
         Forward pass of TargetEncoder.
@@ -148,16 +135,18 @@ class TargetEncoder(MarioNetModule):
         Normally parses single target image at a time, however, can be tricked with temporal
         increase of batch size.
 
-        :param torch.Tensor target_tensor: target tensor, shape [B, C, W, H]
+        :param torch.Tensor target_image: target image, shape [B, C, W, H]
+        :param torch.Tensor target_landmarks: target landmarks, shape [B, L, W, H]
         :returns:
           - list[torch.Tensor] S - feature maps to be used in decoder
           - torch.Tensor zy - TargetEncoder output feature map
         :rtype: tuple[list[torch.Tensor], torch.Tensor]
 
-        Here B - batch size, C - tensor channels, W - width, H - height.
+        Here B - batch size, C - image channels, L - landmark channels, W - width, H - height.
         Target tensor is the product of convolutional layer from concatenated target image and
         landmarks.
         """
+        target_tensor = self.conv_merger(target_image, target_landmarks)
 
         feature_maps = []
         for block in self.downsampling_blocks:
