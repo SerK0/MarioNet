@@ -104,4 +104,5 @@ class MarioNetDataset(Dataset):
         :param image: Image in numpy format, C x H x W.
         """
         image = torch.tensor(image)
+        
         return self.transforms(image).float()
