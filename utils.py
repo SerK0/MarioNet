@@ -2,7 +2,8 @@ import torch
 
 
 class Trainer:
-    def __init__(self, max_epoch: int = 100):
+    def __init__(self, cfg, max_epoch: int = 100):
+        self.cfg = cfg
         self.max_epoch = max_epoch
 
     def training(
@@ -17,21 +18,31 @@ class Trainer:
     ):
 
         for epoch in range(self.max_epoch):
-            for batch in train_dataloader:
-                fake_images = self.generator_step(
+            print({"Epoch {}".format(epoch)})
+            for num, batch in enumerate(train_dataloader):
+
+                discriminator_loss = self.discriminator_step(
+                    generator,
+                    discriminator,
+                    batch,
+                    criterion_dicriminator,
+                    optimizer_discriminator,
+                )
+
+                generator_loss = self.generator_step(
                     generator,
                     discriminator,
                     batch,
                     criterion_generator,
                     optimizer_generator,
                 )
-                self.discriminator_step(
-                    generator,
-                    discriminator,
-                    batch,
-                    fake_images,
-                    criterion_dicriminator,
-                    optimizer_discriminator,
+
+                print(
+                    {
+                        "Num_batch {0}, generator_loss {1}, discriminator_loss {2}".format(
+                            num, generator_loss, discriminator_loss
+                        )
+                    }
                 )
 
     def generator_step(
@@ -42,24 +53,25 @@ class Trainer:
 
         optimizer_generator.zero_grad()
 
-        fake_images = generator.forward(
+        reenacted_images = generator.forward(
             target_image=batch["target_images"],
             target_landmarks=batch["target_landmarks"],
-            driver_image=batch["source_image"],
-            driver_landmarks=batch["source_landmarks"],
+            driver_landmarks=batch["driver_landmarks"],
         )
 
         loss = criterion_generator(
-            output=fake_images,
-            target=batch["source_image"],
-            target_landmarks=batch["source_landmarks"],
-        )  # Пока непонятно, что подставлять в target нужно уточнить и переделать
+            reenacted_image=reenacted_images,
+            driver_image=batch["driver_image"],
+            driver_landmarks=batch["driver_landmarks"],
+        )
 
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(generator.parameters(), 1)
-        generator.step()
+        torch.nn.utils.clip_grad_norm_(
+            generator.parameters(), self.cfg.training.generator.lr
+        )
+        optimizer_generator.step()
 
-        return fake_images
+        return loss.item()
 
     def discriminator_step(
         self,
@@ -72,6 +84,30 @@ class Trainer:
         generator.eval()
         discriminator.train()
 
+        reenacted_images = generator.forward(
+            target_image=batch["target_images"],
+            target_landmarks=batch["target_landmarks"],
+            driver_landmarks=batch["driver_landmarks"],
+        ).detach()
+
         optimizer_discriminator.zero_grad()
 
-        loss = criterion_dicriminator()
+        features_tensor_driver_images = discriminator.forward(
+            image=batch["driver_image"], landmarks=batch["driver_landmarks"]
+        )[0]
+        features_tensor_reenacted_images = discriminator.forward(
+            image=reenacted_images, landmarks=batch["driver_landmarks"]
+        )[0]
+
+        loss = criterion_dicriminator(
+            real_discriminator_features=features_tensor_driver_images,
+            fake_discriminator_features=features_tensor_reenacted_images,
+        )
+
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            discriminator.parameters(), self.cfg.training.discriminator.lr
+        )
+        optimizer_discriminator.step()
+
+        return loss.item()

@@ -14,9 +14,11 @@ preprocess:
 training:
     batch_size: 4
     discriminator:
-        lr: 2e-4
+        clipping: 1
+        lr: 0.0002
     generator:
-        lr: 5e-5
+        clipping: 1
+        lr: 0.00005
     shuffle: True
 model:
   # MarioNet parameters grouped by main network components.

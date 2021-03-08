@@ -94,8 +94,8 @@ class MarioNetDataset(Dataset):
             target_landmarks.append(self.__resize_image(target_image_landmarks.T))
 
         result = {
-            "source_image": self.__resize_image(source_image.T),
-            "source_landmarks": self.__resize_image(source_landmarks.T),
+            "driver_image": self.__resize_image(source_image.T),
+            "driver_landmarks": self.__resize_image(source_landmarks.T),
             "target_images": torch.stack(target_images),
             "target_landmarks": torch.stack(target_landmarks),
         }

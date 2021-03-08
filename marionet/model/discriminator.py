@@ -55,8 +55,6 @@ class Discriminator(nn.Module):
             - Intermediate features of Discriminator: list[torch.Tensor]
         """
 
-        landmarks = torch.squeeze(landmarks, dim=1)
-
         x = self.conv_merger(image, landmarks)
 
         intermediate_features = []

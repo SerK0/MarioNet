@@ -8,7 +8,7 @@ from marionet.config import Config
 from marionet.dataset.dataset import MarioNetDataset
 from marionet.model.discriminator import Discriminator
 from marionet.model.marionet import MarioNet
-from marionet.loss import GeneratorLoss, DiscriminatorLossPatches
+from marionet.loss import GeneratorLoss, DiscriminatorHingeLoss
 from utils import Trainer
 
 
@@ -41,16 +41,14 @@ def main(cfg: Config):
     discriminator = Discriminator(cfg)
 
     criterion_generator = GeneratorLoss(discriminator)
-    criterion_discriminator = DiscriminatorLossPatches()
+    criterion_discriminator = DiscriminatorHingeLoss()
 
-    optimizer_generator = Adam(
-        criterion_generator.params(), lr=cfg.training.generator.lr
-    )
+    optimizer_generator = Adam(generator.parameters(), lr=cfg.training.generator.lr)
     optimizer_discriminator = Adam(
-        criterion_discriminator.params(), lr=cfg.training.discriminator.lr
+        discriminator.parameters(), lr=cfg.training.discriminator.lr
     )
 
-    Trainer().training(
+    Trainer(cfg).training(
         generator=generator,
         discriminator=discriminator,
         train_dataloader=marionet_dataset_dataloader,
