@@ -108,7 +108,7 @@ class Trainer:
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
-            generator.parameters(), self.cfg.training.generator.lr
+            generator.parameters(), self.cfg.training.generator.clipping
         )
         optimizer_generator.step()
 
@@ -157,7 +157,7 @@ class Trainer:
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
-            discriminator.parameters(), self.cfg.training.discriminator.lr
+            discriminator.parameters(), self.cfg.training.discriminator.clipping
         )
         optimizer_discriminator.step()
 
