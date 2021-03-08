@@ -6,7 +6,7 @@ from tqdm import tqdm
 from pathlib import Path
 from skimage import io
 
-from model.config import Config
+from marionet.config import Config
 from .preprocess import LandmarkExtractor
 
 
