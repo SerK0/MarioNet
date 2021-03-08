@@ -1,21 +1,47 @@
 import torch
+import typing as tp
+
+from marionet.config import Config
+from marionet.dataset.dataset import MarioNetDataset
+from marionet.model.discriminator import Discriminator
+from marionet.model.marionet import MarioNet
+from marionet.loss import GeneratorLoss, DiscriminatorHingeLoss
 
 
 class Trainer:
-    def __init__(self, cfg, max_epoch: int = 100):
+    """
+    Class for MarioNet training
+    """
+
+    def __init__(self, cfg: Config, max_epoch: int = 100):
+        """
+        params Config cfg: config file with training parameters
+        params int max_epoch: maximum number of epoch to train
+        """
         self.cfg = cfg
         self.max_epoch = max_epoch
 
     def training(
         self,
-        generator,
-        discriminator,
-        train_dataloader,
-        criterion_generator,
-        criterion_dicriminator,
-        optimizer_generator,
-        optimizer_discriminator,
-    ):
+        generator: MarioNet,
+        discriminator: Discriminator,
+        train_dataloader: MarioNetDataset,
+        criterion_generator: GeneratorLoss,
+        criterion_dicriminator: DiscriminatorHingeLoss,
+        optimizer_generator: torch.optim.Adam,
+        optimizer_discriminator: torch.optim.Adam,
+    ) -> None:
+        '''
+        Training pipeline of MarioNet model
+
+        params MarioNet generator: generator part of network
+        params Discriminator discriminator: dicriminator part of network
+        params MarioNetDataset train_dataloader: train dataloader of images for MarioNet training
+        params GeneratorLoss criterion_generator: generator loss
+        params DiscriminatorHingeLoss criterion_dicriminator: dicriminator loss
+        params torch.optim.Adam optimizer_generator: generator optimizator
+        params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
+        '''
 
         for epoch in range(self.max_epoch):
             print({"Epoch {}".format(epoch)})
@@ -46,8 +72,23 @@ class Trainer:
                 )
 
     def generator_step(
-        self, generator, discriminator, batch, criterion_generator, optimizer_generator
-    ):
+        self, 
+        generator: MarioNetDataset, 
+        discriminator: Discriminator, 
+        batch: tp.Dict[str, torch.Tensor],
+        criterion_generator: GeneratorLoss, 
+        optimizer_generator: torch.optim.Adam,
+    ) -> float:
+        '''
+        Generator step
+
+        params MarioNet generator: generator part of network
+        params Discriminator discriminator: dicriminator part of network
+        params tp.Dict[str, torch.Tensor] batch: batch of data consisting of driver/target images/landmarks
+        params GeneratorLoss criterion_generator: generator loss
+        params torch.optim.Adam optimizer_generator: generator optimizator
+        return: batch loss for generator
+        '''
         generator.train()
         discriminator.eval()
 
@@ -75,12 +116,22 @@ class Trainer:
 
     def discriminator_step(
         self,
-        generator,
-        discriminator,
-        batch,
-        criterion_dicriminator,
-        optimizer_discriminator,
-    ):
+        generator: MarioNetDataset,
+        discriminator: Discriminator,
+        batch: tp.Dict[str, torch.Tensor],
+        criterion_dicriminator: DiscriminatorHingeLoss,
+        optimizer_discriminator: torch.optim.Adam,
+    ) -> float:
+        '''
+        Discriminator step
+
+        params MarioNet generator: generator part of network
+        params Discriminator discriminator: dicriminator part of network
+        params tp.Dict[str, torch.Tensor] batch: batch of data consisting of driver/target images/landmarks
+        params DiscriminatorHingeLoss criterion_dicriminator: dicriminator loss
+        params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
+        return: batch loss for dicriminator    
+        '''
         generator.eval()
         discriminator.train()
 
