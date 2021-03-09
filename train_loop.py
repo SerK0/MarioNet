@@ -57,3 +57,8 @@ def main(cfg: Config):
         optimizer_generator=optimizer_generator,
         optimizer_discriminator=optimizer_discriminator,
     )
+
+
+if __name__ == "__main__":
+    cfg = Config.from_file(Path(__file__).parent / "config.yaml")
+    main(cfg)

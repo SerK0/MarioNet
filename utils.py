@@ -44,7 +44,7 @@ class Trainer:
         """
 
         for epoch in range(self.num_epoch):
-            print({f"Epoch {epoch}"})
+            print(f"Epoch {epoch}")
             for num_batch, batch in enumerate(train_dataloader):
 
                 discriminator_loss = self.discriminator_step(
@@ -64,9 +64,7 @@ class Trainer:
                 )
 
                 print(
-                    {
-                        f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
-                    }
+                    f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
                 )
 
     def generator_step(
