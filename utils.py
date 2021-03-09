@@ -13,13 +13,13 @@ class Trainer:
     Class for MarioNet training
     """
 
-    def __init__(self, cfg: Config, max_epoch: int = 100):
+    def __init__(self, cfg: Config, num_epoch: int = 100):
         """
         params Config cfg: config file with training parameters
         params int max_epoch: maximum number of epoch to train
         """
-        self.cfg = cfg
-        self.max_epoch = max_epoch
+        self.cfg = cfg.training
+        self.num_epoch = num_epoch
 
     def training(
         self,
@@ -31,7 +31,7 @@ class Trainer:
         optimizer_generator: torch.optim.Adam,
         optimizer_discriminator: torch.optim.Adam,
     ) -> None:
-        '''
+        """
         Training pipeline of MarioNet model
 
         params MarioNet generator: generator part of network
@@ -41,11 +41,11 @@ class Trainer:
         params DiscriminatorHingeLoss criterion_dicriminator: dicriminator loss
         params torch.optim.Adam optimizer_generator: generator optimizator
         params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
-        '''
+        """
 
-        for epoch in range(self.max_epoch):
-            print({"Epoch {}".format(epoch)})
-            for num, batch in enumerate(train_dataloader):
+        for epoch in range(self.num_epoch):
+            print({f"Epoch {epoch}"})
+            for num_batch, batch in enumerate(train_dataloader):
 
                 discriminator_loss = self.discriminator_step(
                     generator,
@@ -65,21 +65,19 @@ class Trainer:
 
                 print(
                     {
-                        "Num_batch {0}, generator_loss {1}, discriminator_loss {2}".format(
-                            num, generator_loss, discriminator_loss
-                        )
+                        f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
                     }
                 )
 
     def generator_step(
-        self, 
-        generator: MarioNetDataset, 
-        discriminator: Discriminator, 
+        self,
+        generator: MarioNetDataset,
+        discriminator: Discriminator,
         batch: tp.Dict[str, torch.Tensor],
-        criterion_generator: GeneratorLoss, 
+        criterion_generator: GeneratorLoss,
         optimizer_generator: torch.optim.Adam,
     ) -> float:
-        '''
+        """
         Generator step
 
         params MarioNet generator: generator part of network
@@ -88,13 +86,13 @@ class Trainer:
         params GeneratorLoss criterion_generator: generator loss
         params torch.optim.Adam optimizer_generator: generator optimizator
         return: batch loss for generator
-        '''
+        """
         generator.train()
         discriminator.eval()
 
         optimizer_generator.zero_grad()
 
-        reenacted_images = generator.forward(
+        reenacted_images = generator(
             target_image=batch["target_images"],
             target_landmarks=batch["target_landmarks"],
             driver_landmarks=batch["driver_landmarks"],
@@ -108,7 +106,7 @@ class Trainer:
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
-            generator.parameters(), self.cfg.training.generator.clipping
+            generator.parameters(), self.cfg.generator.clipping
         )
         optimizer_generator.step()
 
@@ -122,7 +120,7 @@ class Trainer:
         criterion_dicriminator: DiscriminatorHingeLoss,
         optimizer_discriminator: torch.optim.Adam,
     ) -> float:
-        '''
+        """
         Discriminator step
 
         params MarioNet generator: generator part of network
@@ -130,12 +128,12 @@ class Trainer:
         params tp.Dict[str, torch.Tensor] batch: batch of data consisting of driver/target images/landmarks
         params DiscriminatorHingeLoss criterion_dicriminator: dicriminator loss
         params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
-        return: batch loss for dicriminator    
-        '''
+        return: batch loss for dicriminator
+        """
         generator.eval()
         discriminator.train()
 
-        reenacted_images = generator.forward(
+        reenacted_images = generator(
             target_image=batch["target_images"],
             target_landmarks=batch["target_landmarks"],
             driver_landmarks=batch["driver_landmarks"],
@@ -143,10 +141,10 @@ class Trainer:
 
         optimizer_discriminator.zero_grad()
 
-        features_tensor_driver_images = discriminator.forward(
+        features_tensor_driver_images = discriminator(
             image=batch["driver_image"], landmarks=batch["driver_landmarks"]
         )[0]
-        features_tensor_reenacted_images = discriminator.forward(
+        features_tensor_reenacted_images = discriminator(
             image=reenacted_images, landmarks=batch["driver_landmarks"]
         )[0]
 
@@ -157,7 +155,7 @@ class Trainer:
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
-            discriminator.parameters(), self.cfg.training.discriminator.clipping
+            discriminator.parameters(), self.cfg.discriminator.clipping
         )
         optimizer_discriminator.step()
 
