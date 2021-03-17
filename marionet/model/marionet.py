@@ -79,7 +79,3 @@ class MarioNet(nn.Module):
 
         zxy = self.blender(zx, zy)
         return self.decoder(zxy, s)
-
-    def spectral_norm_weight(self):
-        for layer in self.children():
-            layer.fill(torch.nn.utils.spectral_norm(layer))

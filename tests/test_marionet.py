@@ -6,7 +6,7 @@ from pathlib import Path
 
 from marionet.config import Config
 from marionet.model.marionet import MarioNet
-
+from marionet.model.discriminator import Discriminator
 
 @pytest.fixture
 def config_path():
@@ -17,7 +17,7 @@ def config_path():
 @pytest.fixture
 def config(config_path):
     with open(config_path, "r") as f:
-        return Config(yaml.load(f.read()))
+        return Config(yaml.load(f.read(), Loader=yaml.FullLoader))
 
 
 @pytest.fixture
@@ -73,3 +73,13 @@ def test_marionet(
     driver_landmarks,
 ):
     MarioNet(config)(target_image, target_landmarks, driver_image, driver_landmarks)
+
+
+def test_marionet_discriminator(
+    config,
+    target_image,
+    target_landmarks,
+    driver_image,
+    driver_landmarks
+):
+    Discriminator(config)(driver_image, driver_landmarks)

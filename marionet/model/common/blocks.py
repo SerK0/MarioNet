@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch.nn.utils import spectral_norm
 from .warp_alignment import WarpAlignmentBlock
 from .positional_encoding import PositionalEncoding
 
@@ -33,15 +32,15 @@ class ResBlockDown(nn.Module):
         super(ResBlockDown, self).__init__()
 
         self.residual_connection = nn.Sequential(
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
             nn.AvgPool2d(kernel_size=2),
         )
 
         self.conv_downsample = nn.Sequential(
             nn.ReLU(),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.ReLU(),
-            spectral_norm(nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.AvgPool2d(kernel_size=2),
         )
 
@@ -68,17 +67,17 @@ class ResBlockUp(nn.Module):
 
         self.residual_connection = nn.Sequential(
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
         )
 
         self.conv_upsample = nn.Sequential(
             nn.InstanceNorm2d(in_channels),
             nn.ReLU(),
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.InstanceNorm2d(out_channels),
             nn.ReLU(),
-            spectral_norm(nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -107,7 +106,7 @@ class UNetResBlockUp(nn.Module):
 
         self.residual_connection = nn.Sequential(
             nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=1)),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1),
         )
 
         self.upsample = nn.Sequential(
@@ -117,15 +116,15 @@ class UNetResBlockUp(nn.Module):
         )
 
         self.conv = nn.Sequential(
-            spectral_norm(nn.Conv2d(
+            nn.Conv2d(
                 in_channels + skip_connection_channels,
                 out_channels,
                 kernel_size=3,
                 padding=1,
-            )),
+            ),
             nn.InstanceNorm2d(out_channels),
             nn.ReLU(),
-            spectral_norm(nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
         )
 
     def forward(self, x: torch.Tensor, skip_connection: torch.Tensor) -> torch.Tensor:
