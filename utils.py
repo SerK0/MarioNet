@@ -1,11 +1,20 @@
-import torch
 import typing as tp
+
+import torch
+from imageio import imsave
+from torchvision.utils import save_image
 
 from marionet.config import Config
 from marionet.dataset.dataset import MarioNetDataset
+from marionet.loss import DiscriminatorHingeLoss, GeneratorLoss
 from marionet.model.discriminator import Discriminator
 from marionet.model.marionet import MarioNet
-from marionet.loss import GeneratorLoss, DiscriminatorHingeLoss
+
+
+def denorm(x):
+    """Convert the range from [-1, 1] to [0, 1]."""
+    out = (x + 1) / 2
+    return out.clamp_(0, 1)
 
 
 class Trainer:
@@ -13,19 +22,19 @@ class Trainer:
     Class for MarioNet training
     """
 
-    def __init__(self, cfg: Config, num_epoch: int = 100):
+    def __init__(self, cfg: Config):
         """
         params Config cfg: config file with training parameters
         params int max_epoch: maximum number of epoch to train
         """
         self.cfg = cfg.training
-        self.num_epoch = num_epoch
 
     def training(
         self,
         generator: MarioNet,
         discriminator: Discriminator,
         train_dataloader: MarioNetDataset,
+        test_dataloader: MarioNetDataset,
         criterion_generator: GeneratorLoss,
         criterion_dicriminator: DiscriminatorHingeLoss,
         optimizer_generator: torch.optim.Adam,
@@ -37,13 +46,14 @@ class Trainer:
         params MarioNet generator: generator part of network
         params Discriminator discriminator: dicriminator part of network
         params MarioNetDataset train_dataloader: train dataloader of images for MarioNet training
+        params MarioNetDataset test_dataloader: test dataloader of images for testing Marionet module
         params GeneratorLoss criterion_generator: generator loss
         params DiscriminatorHingeLoss criterion_dicriminator: dicriminator loss
         params torch.optim.Adam optimizer_generator: generator optimizator
         params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
         """
 
-        for epoch in range(self.num_epoch):
+        for epoch in range(self.cfg.num_epoch):
             print(f"Epoch {epoch}")
             for num_batch, batch in enumerate(train_dataloader):
 
@@ -63,13 +73,19 @@ class Trainer:
                     optimizer_generator,
                 )
 
-                print(
-                    f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
-                )
+                if num_batch % self.cfg.logging.log_step:
+                    print(
+                        f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
+                    )
+
+                if num_batch % self.cfg.samples.sample_step:
+                    self.generate_samples(
+                        generator, test_dataloader, index=f"{epoch}_{num_batch}"
+                    )
 
     def generator_step(
         self,
-        generator: MarioNetDataset,
+        generator: MarioNet,
         discriminator: Discriminator,
         batch: tp.Dict[str, torch.Tensor],
         criterion_generator: GeneratorLoss,
@@ -112,7 +128,7 @@ class Trainer:
 
     def discriminator_step(
         self,
-        generator: MarioNetDataset,
+        generator: MarioNet,
         discriminator: Discriminator,
         batch: tp.Dict[str, torch.Tensor],
         criterion_dicriminator: DiscriminatorHingeLoss,
@@ -158,3 +174,97 @@ class Trainer:
         optimizer_discriminator.step()
 
         return loss.item()
+
+    @torch.no_grad()
+    def generate_samples(
+        self, generator: MarioNet, test_dataloader: MarioNetDataset, index: str = "0"
+    ) -> bool:
+        """
+        :param MarioNet generator: generator network
+        :param MarioNetDataset test_dataloader: test dataloader
+        :param int index: index of saving results
+        :rtype: bool
+        """
+
+        generator.eval()
+        for num_batch, batch in enumerate(test_dataloader):
+            samples = [
+                batch["driver_image"][0],
+                batch["driver_landmarks"][0],
+            ]
+
+            for target_image in batch["target_images"][0]:
+                samples.append(target_image)
+
+            reenacted_images = generator(
+                target_image=batch["target_images"],
+                target_landmarks=batch["target_landmarks"],
+                driver_landmarks=batch["driver_landmarks"],
+            )
+
+            samples.append(reenacted_images[0])
+
+            generator_results = torch.cat(samples, dim=2)
+
+            save_image(
+                generator_results,
+                self.cfg.samples.saving_path.format(index),
+                nrow=1,
+                padding=0,
+                normalize=True,
+            )
+
+            break
+        return True
+
+
+if __name__ == "__main__":
+    from pathlib import Path
+
+    from torch.utils.data import DataLoader
+    from random import shuffle
+    import os
+
+    cfg = Config.from_file(Path(__file__).parent / "config.yaml")
+    trainer = Trainer(cfg)
+    generator = MarioNet(cfg)
+
+    identities = os.listdir(
+        os.path.join(cfg.dataset.folder, cfg.dataset.identity_structure)
+    )
+    shuffle(identities)
+
+    train_identities = identities[: -cfg.training.number_indentities_in_test]
+    test_identities = identities[-cfg.training.number_indentities_in_test :]
+
+    marionet_dataset_train = MarioNetDataset(
+        cfg.dataset.folder,
+        cfg.dataset.faces_structure,
+        train_identities,
+        cfg.dataset.video_structure,
+        cfg.dataset.n_target_images,
+        cfg.dataset.image_size,
+    )
+
+    marionet_dataset_test = MarioNetDataset(
+        cfg.dataset.folder,
+        cfg.dataset.faces_structure,
+        test_identities,
+        cfg.dataset.video_structure,
+        cfg.dataset.n_target_images,
+        cfg.dataset.image_size,
+    )
+
+    train_dataloader = DataLoader(
+        marionet_dataset_train,
+        batch_size=cfg.training.batch_size,
+        shuffle=cfg.training.shuffle,
+    )
+
+    test_dataloader = DataLoader(
+        marionet_dataset_test,
+        batch_size=cfg.training.batch_size,
+        shuffle=False,
+    )
+
+    trainer.generate_samples(generator, test_dataloader)
