@@ -15,10 +15,11 @@ class DiscriminatorHingeLoss(nn.Module):
         ones_tensor = torch.ones_like(real_discriminator_features)
 
         real_part = torch.max(
-            torch.tensor([0, torch.mean(ones_tensor - real_discriminator_features)])
+            torch.tensor([0, torch.mean(ones_tensor - real_discriminator_features)], requires_grad=True)
         )
+
         fake_part = torch.max(
-            torch.tensor([0, torch.mean(ones_tensor - fake_discriminator_features)])
+            torch.tensor([0, torch.mean(ones_tensor - fake_discriminator_features)], requires_grad=True)
         )
 
         return real_part + fake_part

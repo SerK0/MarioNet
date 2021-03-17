@@ -12,7 +12,7 @@ def test_generator_loss():
     config = Config.from_file(project_root / "config.yaml")
     criterion = GeneratorLoss(Discriminator(config))
     batch_size = 2
-    output = torch.rand(batch_size, 3, 224, 224)
-    target = torch.rand(batch_size, 3, 224, 224)
-    target_landmarks = torch.rand(batch_size, 3, 224, 224)
-    criterion(output, target, target_landmarks)
+    reenacted_image = torch.rand(batch_size, 3, 224, 224)
+    driver_image = torch.rand(batch_size, 3, 224, 224)
+    driver_landmarks = torch.rand(batch_size, 3, 224, 224)
+    criterion(reenacted_image, driver_image, driver_landmarks)

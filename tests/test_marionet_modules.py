@@ -31,17 +31,27 @@ def image_dim():
 
 
 @pytest.fixture
-def tensor_channels():
-    return 64
+def image_channels():
+    return 3
 
 
 @pytest.fixture
-def target_tensor(batch_size, tensor_channels, image_dim):
-    return torch.rand(batch_size, tensor_channels, image_dim, image_dim)
+def landmarks_channels():
+    return 3
 
 
-def test_target_encoder(config, target_tensor):
-    TargetEncoder(config)(target_tensor)
+@pytest.fixture
+def target_image(batch_size, image_channels, image_dim):
+    return torch.rand(batch_size, image_channels, image_dim, image_dim)
+
+
+@pytest.fixture
+def target_landmarks(batch_size, landmarks_channels, image_dim):
+    return torch.rand(batch_size, landmarks_channels, image_dim, image_dim)
+
+
+def test_target_encoder(config, target_image, target_landmarks):
+    TargetEncoder(config)(target_image, target_landmarks)
 
 
 def test_decoder(batch_size, config):

@@ -4,13 +4,22 @@ dataset:
     faces_structure: "Faces/{0}/1.6/{1}/*"
     identity_structure: "Faces/"
     video_structure: "Faces/{0}/1.6/"
-    n_target_images: 4
+    n_target_images: 1
     image_size: 128
 preprocess:
     folder: "/home/serk0/Business/new_live/VoxCeleb1/"
     dataset_structure: "Faces/*/*/*/*"
     landmark_type: "3D"
     device: "cpu"
+training:
+    batch_size: 4
+    discriminator:
+        clipping: 1
+        lr: 0.0002
+    generator:
+        clipping: 1
+        lr: 0.00005
+    shuffle: True
 model:
   # MarioNet parameters grouped by main network components.
   # Groups are named after implementation classnames (i.e. CamelCase).
@@ -19,6 +28,8 @@ model:
     # 'The number of channels is doubled (or halved) when the output is downsampled
     #   (or upsampled). The minimum number of channels is set to 64 and the maximum
     #   number of channels is set to 512 for every layer.'
+    image_channels: 3
+    landmarks_channels: 3
     downsampling_channels:
       - 64
       - 128
@@ -41,6 +52,7 @@ model:
       - 64
     output_channels: 3
   DriverEncoder:
+    landmarks_channels: 3
     hidden_features_dim:
       - 64
       - 128
@@ -62,11 +74,9 @@ model:
       - 512
       - 228
       - 228
-  ConvMerger:
-    image_channels: 3
-    landmark_channels: 3
-    tensor_channels: 64
   Discriminator:
+    image_channels: 3
+    landmarks_channels: 3
     channels:
       - 64
       - 128

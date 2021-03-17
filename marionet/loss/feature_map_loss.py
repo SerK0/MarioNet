@@ -27,18 +27,20 @@ class FeatureMapLoss:
 
     def __call__(
         self,
-        output_feature_maps: tp.List[torch.Tensor],
-        target_feature_maps: tp.List[torch.Tensor],
+        reenacted_feature_maps: tp.List[torch.Tensor],
+        driver_feature_maps: tp.List[torch.Tensor],
     ) -> torch.Tensor:
         """
-        :param tp.List[torch.Tensor] output_feature_maps: output feature maps
-        :param tp.List[torch.Tensor] target_feature_maps: target feature maps
+        :param tp.List[torch.Tensor] reenacted_feature_maps: feature maps
+            on reenacted image (i.e. generator output)
+        :param tp.List[torch.Tensor] driver_feature_maps: feature maps
+            on driver (i.e. ground-truth) image
         :returns: sum loss
         :rtype: torch.Tensor
         """
         return sum(
-            self.criterion(output_feature_map, target_feature_map)
-            for output_feature_map, target_feature_map in zip(
-                output_feature_maps, target_feature_maps
+            self.criterion(reenacted_feature_map, driver_feature_map)
+            for reenacted_feature_map, driver_feature_map in zip(
+                reenacted_feature_maps, driver_feature_maps
             )
         )

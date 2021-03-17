@@ -52,34 +52,31 @@ class MarioNetDataset(Dataset):
         return len(self.identity_structure)
 
     def __getitem__(self, index: int) -> tp.Dict[str, torch.Tensor]:
-        source_identity = self.identity_structure[index]
-        target_identity = np.random.choice(self.identity_structure, size=1)[0]
-        target_identity_subfolders = os.listdir(
-            os.path.join(self.folder, self.video_structure.format(target_identity))
+
+        identity = np.random.choice(self.identity_structure, size=1)[0]
+        identity_subfolders = os.listdir(
+            os.path.join(self.folder, self.video_structure.format(identity))
         )
 
-        path_to_source_faces = glob(
-            os.path.join(self.folder, self.faces.format(source_identity, "*"))
-        )
-
-        target_identity_subfolder_name = np.random.choice(
-            target_identity_subfolders, size=1
+        identity_subfolder_name = np.random.choice(
+            identity_subfolders, size=1
         )[0]
 
-        path_to_target_faces = glob(
+        path_to_faces = glob(
             os.path.join(
                 self.folder,
-                self.faces.format(target_identity, target_identity_subfolder_name),
+                self.faces.format(identity, identity_subfolder_name),
             ),
         )
 
-        source_face_path = np.random.choice(path_to_source_faces, size=1)[0]
-        target_face_path = np.random.choice(
-            path_to_target_faces, size=self.n_target_images
+        face_pathes = np.random.choice(
+            path_to_faces, size=self.n_target_images + 1, replace=False
         )
 
-        source_image = io.imread(source_face_path)
-        source_landmarks = io.imread(re.sub("Faces", "Landmarks", source_face_path))
+        driver_face_path, target_face_path = face_pathes[0], face_pathes[1:]
+
+        driver_image = io.imread(driver_face_path)
+        driver_landmarks = io.imread(re.sub("Faces", "Landmarks", driver_face_path))
 
         target_images = []
         target_landmarks = []
@@ -94,8 +91,8 @@ class MarioNetDataset(Dataset):
             target_landmarks.append(self.__resize_image(target_image_landmarks.T))
 
         result = {
-            "source_image": self.__resize_image(source_image.T),
-            "source_landmarks": self.__resize_image(source_landmarks.T),
+            "driver_image": self.__resize_image(driver_image.T),
+            "driver_landmarks": self.__resize_image(driver_landmarks.T),
             "target_images": torch.stack(target_images),
             "target_landmarks": torch.stack(target_landmarks),
         }
@@ -107,4 +104,4 @@ class MarioNetDataset(Dataset):
         :param image: Image in numpy format, C x H x W.
         """
         image = torch.tensor(image)
-        return self.transforms(image)
+        return self.transforms(image).float()

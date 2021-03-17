@@ -4,7 +4,9 @@ import torch.nn as nn
 
 from torch.nn.utils import spectral_norm
 from .marionet_modules import ConvMerger
+
 from .common.blocks import ResBlockDown
+from .common.conv_merger import ConvMerger
 from .common.utils import pairwise
 from ..config import Config
 
@@ -23,7 +25,6 @@ class Discriminator(nn.Module):
         """
         super(Discriminator, self).__init__()
         self.config = config.model.Discriminator
-
         self.conv_merger = spectral_norm(ConvMerger(config))
 
         self.blocks = nn.ModuleList(
@@ -52,6 +53,7 @@ class Discriminator(nn.Module):
             - PatchGAN like output of Discriminator: torch.Tensor
             - Intermediate features of Discriminator: list[torch.Tensor]
         """
+
         x = self.conv_merger(image, landmarks)
 
         intermediate_features = []

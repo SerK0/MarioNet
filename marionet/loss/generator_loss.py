@@ -46,24 +46,40 @@ class GeneratorLoss:
         self.lambda_fm = lambda_fm
 
     def __call__(
-        self, output: torch.Tensor, target: torch.Tensor, target_landmarks: torch.Tensor
+        self,
+        reenacted_image: torch.Tensor,
+        driver_image: torch.Tensor,
+        driver_landmarks: torch.Tensor,
     ) -> torch.Tensor:
         """
-        :param torch.Tensor output: generator output
-        :param torch.Tensor target: target image
+        Overall generator loss. It is being computed from reenacted image
+        (i.e. generator output) and ground-truth reenacted image and its
+        landmarks (to ease discriminator's job).
+
+        'Since the paired target and the driver images from different
+         identities cannot be acquired without explicit annotation,
+         we trained our model using the target and the driver image
+         extracted from the same video.'
+
+        Due to this fact, actual driver image is being used as the
+        ground-truth image, hence the names of parameters.
+
+        :param torch.Tensor reenacted_image: reenacted image
+        :param torch.Tensor driver_image: driver image
+        :param torch.Tensor driver_landmarks: driver landmarks
         :returns: overall generator loss
         :rtype: torch.Tensor
         """
-        output_realness, output_feature_maps = self.discriminator(
-            output, target_landmarks
+        reenacted_realness, reenacted_feature_maps = self.discriminator(
+            reenacted_image, driver_landmarks
         )
-        _, target_feature_maps = self.discriminator(target, target_landmarks)
+        _, driver_feature_maps = self.discriminator(driver_image, driver_landmarks)
         return (
-            self.gan_loss(output_realness)
-            + (self.lambda_p * self.vgg19_loss(output, target))
-            + (self.lambda_pf * self.vgg_vd_16_loss(output, target))
+            self.gan_loss(reenacted_realness)
+            + (self.lambda_p * self.vgg19_loss(reenacted_image, driver_image))
+            + (self.lambda_pf * self.vgg_vd_16_loss(reenacted_image, driver_image))
             + (
                 self.lambda_fm
-                * self.feature_map_loss(output_feature_maps, target_feature_maps)
+                * self.feature_map_loss(reenacted_feature_maps, driver_feature_maps)
             )
         )
