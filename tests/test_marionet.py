@@ -8,6 +8,7 @@ from marionet.config import Config
 from marionet.model.marionet import MarioNet
 from marionet.model.discriminator import Discriminator
 
+
 @pytest.fixture
 def config_path():
     project_dir = Path(__file__).parent.parent
