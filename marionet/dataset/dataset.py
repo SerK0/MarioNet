@@ -20,7 +20,7 @@ class MarioNetDataset(Dataset):
         self,
         folder: str,
         faces_structure: str,
-        identity_structure: list,
+        identity_structure: tp.List,
         video_structure: str,
         n_target_images: int = 4,
         image_size: int = 128,
@@ -43,7 +43,7 @@ class MarioNetDataset(Dataset):
         self.image_size = image_size
 
         transformations = torch.nn.Sequential(
-            transforms.Resize((image_size, image_size), interpolation=Image.BILINEAR),
+            transforms.Resize((image_size,), interpolation=Image.BILINEAR),
             transforms.CenterCrop(image_size),
         )
 
