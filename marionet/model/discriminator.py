@@ -3,7 +3,6 @@ import torch.nn as nn
 
 
 from torch.nn.utils import spectral_norm
-from .marionet_modules import ConvMerger
 
 from .common.blocks import ResBlockDown
 from .common.conv_merger import ConvMerger
@@ -25,7 +24,13 @@ class Discriminator(nn.Module):
         """
         super(Discriminator, self).__init__()
         self.config = config.model.Discriminator
-        self.conv_merger = spectral_norm(ConvMerger(config))
+        self.conv_merger = spectral_norm(
+            ConvMerger(
+                self.config.image_channels,
+                self.config.landmarks_channels,
+                self.config.channels[0],
+            )
+        )
 
         self.blocks = nn.ModuleList(
             [
@@ -34,12 +39,14 @@ class Discriminator(nn.Module):
             ]
         )
 
-        self.output_conv = spectral_norm(nn.Conv2d(
-            in_channels=self.config.channels[-1],
-            out_channels=1,
-            kernel_size=3,
-            padding=1,
-        ))
+        self.output_conv = spectral_norm(
+            nn.Conv2d(
+                in_channels=self.config.channels[-1],
+                out_channels=1,
+                kernel_size=3,
+                padding=1,
+            )
+        )
 
     def forward(
         self, image: torch.Tensor, landmarks: torch.Tensor
