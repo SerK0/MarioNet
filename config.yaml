@@ -4,7 +4,7 @@ dataset:
     faces_structure: "Faces/{0}/1.6/{1}/*"
     identity_structure: "Faces/"
     video_structure: "Faces/{0}/1.6/"
-    n_target_images: 1
+    n_target_images: 4
     image_size: 128
 preprocess:
     folder: "/home/serk0/Business/new_live/VoxCeleb1/"
@@ -19,7 +19,14 @@ training:
     generator:
         clipping: 1
         lr: 0.00005
+    logging:
+      log_step: 2
+    num_epoch: 100
+    samples:
+      sample_step: 2
+      saving_path: "../generated_images/img_{}.jpg" 
     shuffle: True
+    number_indentities_in_test: 5
 model:
   # MarioNet parameters grouped by main network components.
   # Groups are named after implementation classnames (i.e. CamelCase).

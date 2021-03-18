@@ -1,14 +1,16 @@
+import os
 import typing as tp
-
 from pathlib import Path
-from torch.utils.data import DataLoader
+from random import shuffle
+
 from torch.optim import Adam
+from torch.utils.data import DataLoader
 
 from marionet.config import Config
 from marionet.dataset.dataset import MarioNetDataset
+from marionet.loss import DiscriminatorHingeLoss, GeneratorLoss
 from marionet.model.discriminator import Discriminator
 from marionet.model.marionet import MarioNet
-from marionet.loss import GeneratorLoss, DiscriminatorHingeLoss
 from utils import Trainer
 
 
@@ -22,17 +24,40 @@ def check_dataloader(marionet_dataset_dataloader):
 
 def main(cfg: Config):
 
-    marionet_dataset = MarioNetDataset(
+    identities = os.listdir(
+        os.path.join(cfg.dataset.folder, cfg.dataset.identity_structure)
+    )
+    shuffle(identities)
+
+    train_identities = identities[: -cfg.training.number_indentities_in_test]
+    test_identities = identities[-cfg.training.number_indentities_in_test :]
+
+    marionet_dataset_train = MarioNetDataset(
         cfg.dataset.folder,
         cfg.dataset.faces_structure,
-        cfg.dataset.identity_structure,
+        train_identities,
         cfg.dataset.video_structure,
         cfg.dataset.n_target_images,
         cfg.dataset.image_size,
     )
 
-    marionet_dataset_dataloader = DataLoader(
-        marionet_dataset,
+    marionet_dataset_test = MarioNetDataset(
+        cfg.dataset.folder,
+        cfg.dataset.faces_structure,
+        test_identities,
+        cfg.dataset.video_structure,
+        cfg.dataset.n_target_images,
+        cfg.dataset.image_size,
+    )
+
+    train_dataloader = DataLoader(
+        marionet_dataset_train,
+        batch_size=cfg.training.batch_size,
+        shuffle=cfg.training.shuffle,
+    )
+
+    test_dataloader = DataLoader(
+        marionet_dataset_test,
         batch_size=cfg.training.batch_size,
         shuffle=cfg.training.shuffle,
     )
@@ -48,10 +73,14 @@ def main(cfg: Config):
         discriminator.parameters(), lr=cfg.training.discriminator.lr
     )
 
+    print(
+        f"train_size_identities = {len(marionet_dataset_train)}, test_size_identities = {len(marionet_dataset_test)}"
+    )
     Trainer(cfg).training(
         generator=generator,
         discriminator=discriminator,
-        train_dataloader=marionet_dataset_dataloader,
+        train_dataloader=train_dataloader,
+        test_dataloader=test_dataloader,
         criterion_generator=criterion_generator,
         criterion_dicriminator=criterion_discriminator,
         optimizer_generator=optimizer_generator,
