@@ -90,3 +90,4 @@ model:
       - 256
       - 512
       - 512
+    spectral_norm: True

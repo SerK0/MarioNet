@@ -24,17 +24,16 @@ class Discriminator(nn.Module):
         """
         super(Discriminator, self).__init__()
         self.config = config.model.Discriminator
-        self.conv_merger = spectral_norm(
-            ConvMerger(
-                self.config.image_channels,
-                self.config.landmarks_channels,
-                self.config.channels[0],
-            )
+        self.conv_merger = ConvMerger(
+            self.config.image_channels,
+            self.config.landmarks_channels,
+            self.config.channels[0],
+            self.config.spectral_norm
         )
 
         self.blocks = nn.ModuleList(
             [
-                spectral_norm(ResBlockDown(in_channels, out_channels))
+                ResBlockDown(in_channels, out_channels, spectral_norm_fl=True)
                 for in_channels, out_channels in pairwise(self.config.channels)
             ]
         )

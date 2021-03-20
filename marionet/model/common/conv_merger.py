@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from torch.nn.utils import spectral_norm
+
 
 class ConvMerger(nn.Module):
     """
@@ -8,7 +10,7 @@ class ConvMerger(nn.Module):
     """
 
     def __init__(
-        self, image_channels: int, landmarks_channels: int, tensor_channels: int
+        self, image_channels: int, landmarks_channels: int, tensor_channels: int, spectral_norm_fl: bool = False
     ) -> None:
         """
         :param int image_channels: image channels
@@ -23,6 +25,9 @@ class ConvMerger(nn.Module):
             kernel_size=3,
             padding=1,
         )
+
+        if spectral_norm_fl:
+            self.conv_projection = spectral_norm(self.conv_projection)
 
     def forward(self, image: torch.Tensor, landmarks: torch.Tensor) -> torch.Tensor:
         """

@@ -52,6 +52,11 @@ def target_image(batch_size, num_targets, image_channels, image_dim):
 
 
 @pytest.fixture
+def driver_image(batch_size, image_channels, image_dim):
+    return torch.rand(batch_size, image_channels, image_dim, image_dim)
+
+
+@pytest.fixture
 def target_landmarks(batch_size, num_targets, landmark_channels, image_dim):
     return torch.rand(batch_size, num_targets, landmark_channels, image_dim, image_dim)
 
@@ -67,7 +72,7 @@ def test_marionet(
     target_landmarks,
     driver_landmarks,
 ):
-    MarioNet(config)(target_image, target_landmarks, driver_image, driver_landmarks)
+    MarioNet(config)(target_image, target_landmarks, driver_landmarks)
 
 
 def test_marionet_discriminator(
