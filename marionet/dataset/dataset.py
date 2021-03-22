@@ -42,14 +42,10 @@ class MarioNetDataset(Dataset):
         self.n_target_images = n_target_images
         self.image_size = image_size
 
-        transformations = torch.nn.Sequential(
-            transforms.Resize((image_size,), interpolation=Image.BILINEAR),
-            transforms.CenterCrop(image_size),
-        )
-
-        self.transforms = torch.jit.script(transformations)
-        self.transforms_normalization = transforms.Compose(
+        self.transforms = transforms.Compose(
             [
+                transforms.Resize(image_size, interpolation=Image.BILINEAR),
+                transforms.CenterCrop(image_size),
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
             ]
         )
@@ -107,5 +103,4 @@ class MarioNetDataset(Dataset):
         """
         :param image: Image in numpy format, H x W x C.
         """
-        image_cropped = self.transforms(torch.tensor(image).permute(2, 0, 1)).float()
-        return self.transforms_normalization(image_cropped)
+        return self.transforms(torch.tensor(image).permute(2, 0, 1)).float()
