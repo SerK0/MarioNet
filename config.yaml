@@ -22,11 +22,14 @@ training:
     logging:
       log_step: 2
     num_epoch: 100
+    number_indentities_in_test: 5
     samples:
       sample_step: 2
       saving_path: "../generated_images/img_{}.jpg" 
     shuffle: True
-    number_indentities_in_test: 5
+    wandb:
+      project: 'MarioNet'
+      name: 'Test_run'
 model:
   # MarioNet parameters grouped by main network components.
   # Groups are named after implementation classnames (i.e. CamelCase).

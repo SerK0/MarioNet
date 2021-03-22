@@ -1,6 +1,7 @@
 import typing as tp
 
 import torch
+import wandb
 from imageio import imsave
 from torchvision.utils import save_image
 
@@ -28,6 +29,9 @@ class Trainer:
         params int max_epoch: maximum number of epoch to train
         """
         self.cfg = cfg.training
+        self.wandb = wandb.init(
+            project=cfg.training.wandb.project, name=cfg.training.wandb.name
+        )
 
     def training(
         self,
@@ -74,13 +78,28 @@ class Trainer:
                 )
 
                 if num_batch % self.cfg.logging.log_step:
+                    wandb.log(
+                        {
+                            "Generator loss": generator_loss,
+                            "Discriminator loss": discriminator_loss,
+                        }
+                    )
+
                     print(
                         f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
                     )
 
                 if num_batch % self.cfg.samples.sample_step:
-                    self.generate_samples(
-                        generator, test_dataloader, index=f"{epoch}_{num_batch}"
+                    image = (
+                        self.generate_samples(
+                            generator, test_dataloader, index=f"{epoch}_{num_batch}"
+                        )
+                        .cpu()
+                        .numpy()
+                    )
+
+                    wandb.log(
+                        {"examples": [wandb.Image(image, caption="Generated Images")]}
                     )
 
     def generator_step(
@@ -200,7 +219,7 @@ class Trainer:
                 target_image=batch["target_images"],
                 target_landmarks=batch["target_landmarks"],
                 driver_landmarks=batch["driver_landmarks"],
-            )
+            ).detach()
 
             samples.append(reenacted_images[0])
 
@@ -215,4 +234,4 @@ class Trainer:
             )
 
             break
-        return True
+        return generator_results
