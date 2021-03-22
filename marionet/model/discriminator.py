@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 
-
 from torch.nn.utils import spectral_norm
-
 from .common.blocks import ResBlockDown
 from .common.conv_merger import ConvMerger
 from .common.utils import pairwise
@@ -24,29 +22,29 @@ class Discriminator(nn.Module):
         """
         super(Discriminator, self).__init__()
         self.config = config.model.Discriminator
-        self.conv_merger = spectral_norm(
-            ConvMerger(
-                self.config.image_channels,
-                self.config.landmarks_channels,
-                self.config.channels[0],
-            )
+        self.conv_merger = ConvMerger(
+            self.config.image_channels,
+            self.config.landmarks_channels,
+            self.config.channels[0],
+            self.config.spectral_norm
         )
 
         self.blocks = nn.ModuleList(
             [
-                spectral_norm(ResBlockDown(in_channels, out_channels))
+                ResBlockDown(in_channels, out_channels, spectral_normalize=self.config.spectral_norm)
                 for in_channels, out_channels in pairwise(self.config.channels)
             ]
         )
 
-        self.output_conv = spectral_norm(
-            nn.Conv2d(
-                in_channels=self.config.channels[-1],
-                out_channels=1,
-                kernel_size=3,
-                padding=1,
-            )
+        self.output_conv = nn.Conv2d(
+            in_channels=self.config.channels[-1],
+            out_channels=1,
+            kernel_size=3,
+            padding=1,
         )
+
+        if self.config.spectral_norm:
+            self.output_conv = spectral_norm(self.output_conv)
 
     def forward(
         self, image: torch.Tensor, landmarks: torch.Tensor
