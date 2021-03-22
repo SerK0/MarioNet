@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 
-
 from torch.nn.utils import spectral_norm
-
 from .common.blocks import ResBlockDown
 from .common.conv_merger import ConvMerger
 from .common.utils import pairwise
@@ -47,7 +45,6 @@ class Discriminator(nn.Module):
 
         if self.config.spectral_norm:
             self.output_conv = spectral_norm(self.output_conv)
-
 
     def forward(
         self, image: torch.Tensor, landmarks: torch.Tensor
