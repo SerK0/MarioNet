@@ -33,19 +33,21 @@ class Discriminator(nn.Module):
 
         self.blocks = nn.ModuleList(
             [
-                ResBlockDown(in_channels, out_channels, spectral_norm_fl=True)
+                ResBlockDown(in_channels, out_channels, spectral_normalize=self.config.spectral_norm)
                 for in_channels, out_channels in pairwise(self.config.channels)
             ]
         )
 
-        self.output_conv = spectral_norm(
-            nn.Conv2d(
-                in_channels=self.config.channels[-1],
-                out_channels=1,
-                kernel_size=3,
-                padding=1,
-            )
+        self.output_conv = nn.Conv2d(
+            in_channels=self.config.channels[-1],
+            out_channels=1,
+            kernel_size=3,
+            padding=1,
         )
+
+        if self.config.spectral_norm:
+            self.output_conv = spectral_norm(self.output_conv)
+
 
     def forward(
         self, image: torch.Tensor, landmarks: torch.Tensor

@@ -10,7 +10,7 @@ class ConvMerger(nn.Module):
     """
 
     def __init__(
-        self, image_channels: int, landmarks_channels: int, tensor_channels: int, spectral_norm_fl: bool = False
+        self, image_channels: int, landmarks_channels: int, tensor_channels: int, spectral_normalize: bool = False
     ) -> None:
         """
         :param int image_channels: image channels
@@ -26,7 +26,7 @@ class ConvMerger(nn.Module):
             padding=1,
         )
 
-        if spectral_norm_fl:
+        if spectral_normalize:
             self.conv_projection = spectral_norm(self.conv_projection)
 
     def forward(self, image: torch.Tensor, landmarks: torch.Tensor) -> torch.Tensor:
