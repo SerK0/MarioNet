@@ -213,7 +213,7 @@ class SelfAttentionBlock(nn.Module):
 
         Px = torch.cat(
             [
-                PositionalEncoding.get_matrix((hx, wx, cx)).unsqueeze(0)
+                PositionalEncoding.get_matrix((hx, wx, cx)).unsqueeze(0).to(device)
                 for _ in range(batch_size)
             ],
             dim=0,
