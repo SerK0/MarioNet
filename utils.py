@@ -77,7 +77,7 @@ class Trainer:
                     optimizer_generator,
                 )
 
-                if num_batch % self.cfg.logging.log_step:
+                if num_batch % self.cfg.logging.log_step == 0:
                     wandb.log(
                         {
                             "Generator loss": generator_loss,
@@ -89,17 +89,30 @@ class Trainer:
                         f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
                     )
 
-                if num_batch % self.cfg.samples.sample_step:
-                    image = (
-                        self.generate_samples(
-                            generator, test_dataloader, index=f"{epoch}_{num_batch}"
-                        )
-                        .cpu()
-                        .numpy()
+                if num_batch % self.cfg.samples.sample_step == 0:
+                    input_images, reenacted_image = self.generate_samples(
+                        generator, test_dataloader, index=f"{epoch}_{num_batch}"
                     )
 
+                    input_images = input_images.permute(1, 2, 0).cpu().numpy()
+                    reenacted_image = reenacted_image.permute(1, 2, 0).cpu().numpy()
+
                     wandb.log(
-                        {"examples": [wandb.Image(image, caption="Generated Images")]}
+                        {
+                            "examples": [
+                                wandb.Image(input_images, caption="Input Images"),
+                                wandb.Image(reenacted_image, caption="Generated Image"),
+                            ]
+                        }
+                    )
+                if num_batch % self.cfg.model_saving.step == 0:
+                    torch.save(
+                        generator.state_dict(),
+                        self.cfg.model_saving.path.format("generator"),
+                    )
+                    torch.save(
+                        discriminator.state_dict(),
+                        self.cfg.model_saving.path.format("discriminator"),
                     )
 
     def generator_step(
@@ -196,12 +209,17 @@ class Trainer:
 
     @torch.no_grad()
     def generate_samples(
-        self, generator: MarioNet, test_dataloader: MarioNetDataset, index: str = "0"
+        self,
+        generator: MarioNet,
+        test_dataloader: MarioNetDataset,
+        index: str = "0",
+        save_local: bool = False,
     ) -> bool:
         """
         :param MarioNet generator: generator network
         :param MarioNetDataset test_dataloader: test dataloader
         :param int index: index of saving results
+        :param bool save_local: whether to save images locally
         :rtype: bool
         """
 
@@ -221,17 +239,27 @@ class Trainer:
                 driver_landmarks=batch["driver_landmarks"],
             ).detach()
 
-            samples.append(reenacted_images[0])
+            samples.append(denorm(reenacted_images[0]))
 
             generator_results = torch.cat(samples, dim=2)
 
-            save_image(
-                generator_results,
-                self.cfg.samples.saving_path.format(index),
-                nrow=1,
-                padding=0,
-                normalize=True,
-            )
+            if save_local:
+
+                save_image(
+                    generator_results,
+                    self.cfg.samples.saving_path.format(index),
+                    nrow=1,
+                    padding=0,
+                    normalize=True,
+                )
+
+                save_image(
+                    denorm(reenacted_images[0]),
+                    self.cfg.samples.saving_path.format("generator_image_" + index),
+                    nrow=1,
+                    padding=0,
+                    normalize=True,
+                )
 
             break
-        return generator_results
+        return generator_results, samples[-1]

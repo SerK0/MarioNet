@@ -1,8 +1,10 @@
 import os
+import random
 import typing as tp
 from pathlib import Path
-from random import shuffle
 
+import numpy as np
+import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -24,10 +26,14 @@ def check_dataloader(marionet_dataset_dataloader):
 
 def main(cfg: Config):
 
+    np.random.seed(cfg.training.random_seed)
+    random.seed(cfg.training.random_seed)
+    torch.manual_seed(cfg.training.random_seed)
+
     identities = os.listdir(
         os.path.join(cfg.dataset.folder, cfg.dataset.identity_structure)
     )
-    shuffle(identities)
+    random.shuffle(identities)
 
     train_identities = identities[: -cfg.training.number_indentities_in_test]
     test_identities = identities[-cfg.training.number_indentities_in_test :]
