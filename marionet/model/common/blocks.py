@@ -211,25 +211,15 @@ class SelfAttentionBlock(nn.Module):
 
         device = next(self.parameters()).device
 
-        Px = torch.cat(
-            [
-                PositionalEncoding.get_matrix((hx, wx, cx)).unsqueeze(0).to(device)
-                for _ in range(batch_size)
-            ],
-            dim=0,
-        )
+        Px = PositionalEncoding.get_matrix((hx, wx, cx)).unsqueeze(0)
+        Px = Px.expand(batch_size, hx, wx, cx).to(device)
         q = self.q_proj(zx.permute(0, 2, 3, 1)) + self.px_proj(Px)
 
         batch_size, K, cy, h, w = zy.size()
 
-        Py = torch.cat(
-            [
-                PositionalEncoding.get_matrix((h, w, cy)).unsqueeze(0).to(device)
-                for _ in range(batch_size * K)
-            ],
-            dim=0,
-        )
-        Py = Py.view(batch_size, K, h, w, cy)
+        Py = PositionalEncoding.get_matrix((h, w, cy)).unsqueeze(0)
+        Py = Py.expand(batch_size * K, h, w, cy)
+        Py = Py.view(batch_size, K, h, w, cy).to(device)
 
         k = self.k_proj(zy.permute(0, 1, 3, 4, 2)) + self.py_proj(Py)
 
