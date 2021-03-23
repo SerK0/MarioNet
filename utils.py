@@ -23,12 +23,13 @@ class Trainer:
     Class for MarioNet training
     """
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, device: str):
         """
         params Config cfg: config file with training parameters
-        params int max_epoch: maximum number of epoch to train
+        params str device: device
         """
         self.cfg = cfg.training
+        self.device = device
         self.wandb = wandb.init(
             project=cfg.training.wandb.project, name=cfg.training.wandb.name
         )
@@ -139,15 +140,15 @@ class Trainer:
         optimizer_generator.zero_grad()
 
         reenacted_images = generator(
-            target_image=batch["target_images"],
-            target_landmarks=batch["target_landmarks"],
-            driver_landmarks=batch["driver_landmarks"],
+            target_image=batch["target_images"].to(self.device),
+            target_landmarks=batch["target_landmarks"].to(self.device),
+            driver_landmarks=batch["driver_landmarks"].to(self.device),
         )
 
         loss = criterion_generator(
             reenacted_image=reenacted_images,
-            driver_image=batch["driver_image"],
-            driver_landmarks=batch["driver_landmarks"],
+            driver_image=batch["driver_image"].to(self.device),
+            driver_landmarks=batch["driver_landmarks"].to(self.device),
         )
 
         loss.backward()
@@ -180,18 +181,19 @@ class Trainer:
         discriminator.train()
 
         reenacted_images = generator(
-            target_image=batch["target_images"],
-            target_landmarks=batch["target_landmarks"],
-            driver_landmarks=batch["driver_landmarks"],
+            target_image=batch["target_images"].to(self.device),
+            target_landmarks=batch["target_landmarks"].to(self.device),
+            driver_landmarks=batch["driver_landmarks"].to(self.device),
         ).detach()
 
         optimizer_discriminator.zero_grad()
 
         features_tensor_driver_images = discriminator(
-            image=batch["driver_image"], landmarks=batch["driver_landmarks"]
+            image=batch["driver_image"].to(self.device),
+            landmarks=batch["driver_landmarks"].to(self.device),
         )[0]
         features_tensor_reenacted_images = discriminator(
-            image=reenacted_images, landmarks=batch["driver_landmarks"]
+            image=reenacted_images, landmarks=batch["driver_landmarks"].to(self.device)
         )[0]
 
         loss = criterion_dicriminator(
@@ -233,11 +235,15 @@ class Trainer:
             for target_image in batch["target_images"][0]:
                 samples.append(target_image)
 
-            reenacted_images = generator(
-                target_image=batch["target_images"],
-                target_landmarks=batch["target_landmarks"],
-                driver_landmarks=batch["driver_landmarks"],
-            ).detach()
+            reenacted_images = (
+                generator(
+                    target_image=batch["target_images"].to(self.device),
+                    target_landmarks=batch["target_landmarks"].to(self.device),
+                    driver_landmarks=batch["driver_landmarks"].to(self.device),
+                )
+                .detach()
+                .cpu()
+            )
 
             samples.append(denorm(reenacted_images[0]))
 

@@ -68,10 +68,10 @@ def main(cfg: Config):
         shuffle=cfg.training.shuffle,
     )
 
-    generator = MarioNet(cfg)
-    discriminator = Discriminator(cfg)
+    generator = MarioNet(cfg).to(cfg.device)
+    discriminator = Discriminator(cfg).to(cfg.device)
 
-    criterion_generator = GeneratorLoss(discriminator)
+    criterion_generator = GeneratorLoss(discriminator, device=cfg.device)
     criterion_discriminator = DiscriminatorHingeLoss()
 
     optimizer_generator = Adam(generator.parameters(), lr=cfg.training.generator.lr)
@@ -82,7 +82,7 @@ def main(cfg: Config):
     print(
         f"train_size_identities = {len(marionet_dataset_train)}, test_size_identities = {len(marionet_dataset_test)}"
     )
-    Trainer(cfg).training(
+    Trainer(cfg, cfg.device).training(
         generator=generator,
         discriminator=discriminator,
         train_dataloader=train_dataloader,

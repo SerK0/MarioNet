@@ -17,7 +17,7 @@ class PerceptualLossVGG19(nn.Module):
     https://github.com/pytorch/examples/blob/master/fast_neural_style/neural_style/vgg.py
     """
 
-    def __init__(self) -> None:
+    def __init__(self, device) -> None:
         """
         Perceptual loss VGG19 init
 
@@ -50,6 +50,8 @@ class PerceptualLossVGG19(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+        self.to(device)
+
     def forward(
         self, x: torch.Tensor
     ) -> tp.Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -74,7 +76,7 @@ class PerceptualLossVGG_VD_16(nn.Module):
     https://www.robots.ox.ac.uk/~albanie/pytorch-models.html
     """
 
-    def __init__(self) -> None:
+    def __init__(self, device) -> None:
         """
         Perceptual loss VGG VD 16 init
 
@@ -148,6 +150,8 @@ class PerceptualLossVGG_VD_16(nn.Module):
         for param in self.parameters():
             param.requires_grad = False
 
+        self.to(device)
+
     def load_checkpoint(self) -> None:
         """
         Checkpoint loading function.
@@ -174,6 +178,7 @@ class PerceptualLossVGG_VD_16(nn.Module):
         missing_keys, unexpected_keys = self.load_state_dict(
             torch.load(checkpoint_path), strict=False
         )
+
         assert not missing_keys
         assert len(unexpected_keys) == 10
 
