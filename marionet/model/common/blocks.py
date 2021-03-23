@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch.nn.utils import spectral_norm
+
 from .warp_alignment import WarpAlignmentBlock
 from .positional_encoding import PositionalEncoding
 
@@ -18,12 +20,28 @@ SelfAttentionBlock is used in MarioNet's Blender.
 """
 
 
+class Conv2d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, spectral_normalize=False):
+        super().__init__()
+        self.nn_conv2d = nn.Conv2d(in_channels,
+                                   out_channels,
+                                   kernel_size=kernel_size,
+                                   stride=stride,
+                                   padding=padding)
+
+        if spectral_normalize:
+            self.nn_conv2d = spectral_norm(self.nn_conv2d)
+
+    def forward(self, x):
+        return self.nn_conv2d(x)
+
+
 class ResBlockDown(nn.Module):
     """
     BigGAN downsampling block.
     """
 
-    def __init__(self, in_channels: int, out_channels: int) -> None:
+    def __init__(self, in_channels: int, out_channels: int, spectral_normalize=False) -> None:
         """
         :param int in_channels: input channels
         :param int out_channels: output channels
@@ -32,15 +50,15 @@ class ResBlockDown(nn.Module):
         super(ResBlockDown, self).__init__()
 
         self.residual_connection = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1),
+            Conv2d(in_channels, out_channels, kernel_size=1, spectral_normalize=spectral_normalize),
             nn.AvgPool2d(kernel_size=2),
         )
 
         self.conv_downsample = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            Conv2d(in_channels, out_channels, kernel_size=3, padding=1, spectral_normalize=spectral_normalize),
             nn.ReLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            Conv2d(out_channels, out_channels, kernel_size=3, padding=1, spectral_normalize=spectral_normalize),
             nn.AvgPool2d(kernel_size=2),
         )
 
