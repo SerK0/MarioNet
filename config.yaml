@@ -12,7 +12,7 @@ preprocess:
     landmark_type: "3D"
     device: "cpu"
 training:
-    batch_size: 4
+    batch_size: 16
     discriminator:
         clipping: 1
         lr: 0.0002
@@ -20,16 +20,20 @@ training:
         clipping: 1
         lr: 0.00005
     logging:
-      log_step: 2
+      log_step: 10
     num_epoch: 100
     number_indentities_in_test: 5
     samples:
-      sample_step: 2
+      sample_step: 10
       saving_path: "../generated_images/img_{}.jpg" 
+    model_saving:
+      step: 300
+      path: "../checkpoints/model_{}.pt"
+    random_seed: 2021
     shuffle: True
     wandb:
       project: 'MarioNet'
-      name: 'Test_run'
+      name: 'First_run'
 model:
   # MarioNet parameters grouped by main network components.
   # Groups are named after implementation classnames (i.e. CamelCase).
