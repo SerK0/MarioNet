@@ -24,6 +24,7 @@ class GeneratorLoss:
         lambda_p: float = 0.01,
         lambda_pf: float = 0.01,
         lambda_fm: float = 10.0,
+        device: str = "cpu",
     ):
         """
         :param tp.Callable[[torch.Tensor], torch.Tensor] discriminator: discriminator
@@ -36,10 +37,10 @@ class GeneratorLoss:
 
         self.gan_loss = GeneratorHingeLoss()
 
-        self.vgg19_loss = PerceptualLoss(PerceptualLossVGG19())
+        self.vgg19_loss = PerceptualLoss(PerceptualLossVGG19(device=device))
         self.lambda_p = lambda_p
 
-        self.vgg_vd_16_loss = PerceptualLoss(PerceptualLossVGG_VD_16())
+        self.vgg_vd_16_loss = PerceptualLoss(PerceptualLossVGG_VD_16(device=device))
         self.lambda_pf = lambda_pf
 
         self.feature_map_loss = FeatureMapLoss()
