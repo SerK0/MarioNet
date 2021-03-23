@@ -19,18 +19,18 @@ class PositionalEncoding:
         h_depended, w_depended = PositionalEncoding.__get_mesh_grid(h, w)
 
         for pe_channel in range(c // 4):
+            current_channel = pe_channel * 4
+            channel_norm = 10000 ** (2 * current_channel / c)
 
-            channel_norm = 10000 ** (2 * pe_channel // c)
-
-            PE[:, :, pe_channel] = torch.sin((h_depended * 256) / (h * channel_norm))
-            PE[:, :, pe_channel + 1] = torch.cos(
-                (h_depended * 256) / (h * channel_norm)
+            PE[:, :, current_channel] = torch.sin(256 * h_depended / (h * channel_norm))
+            PE[:, :, current_channel + 1] = torch.cos(
+                256 * h_depended / (h * channel_norm)
             )
-            PE[:, :, pe_channel + 2] = torch.sin(
-                (w_depended * 256) / (w * channel_norm)
+            PE[:, :, current_channel + 2] = torch.sin(
+                256 * w_depended / (w * channel_norm)
             )
-            PE[:, :, pe_channel + 3] = torch.cos(
-                (w_depended * 256) / (w * channel_norm)
+            PE[:, :, current_channel + 3] = torch.cos(
+                256 * w_depended / (w * channel_norm)
             )
 
         return PE

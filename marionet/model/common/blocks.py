@@ -180,7 +180,6 @@ class SelfAttentionBlock(nn.Module):
         self.py_proj = nn.Linear(target_feature_dim, attention_feature_dim)
 
         self.v_proj = nn.Linear(target_feature_dim, driver_feature_dim)
-
         self.attention_feature_size = attention_feature_dim
 
     def forward(self, zx: torch.Tensor, zy: torch.Tensor) -> torch.Tensor:
@@ -191,6 +190,9 @@ class SelfAttentionBlock(nn.Module):
             self 'attentioned' feature map
         """
         batch_size, cx, hx, wx = zx.size()
+
+        device = next(self.parameters()).device
+
         Px = torch.cat(
             [
                 PositionalEncoding.get_matrix((hx, wx, cx)).unsqueeze(0)
@@ -204,7 +206,7 @@ class SelfAttentionBlock(nn.Module):
 
         Py = torch.cat(
             [
-                PositionalEncoding.get_matrix((h, w, cy)).unsqueeze(0)
+                PositionalEncoding.get_matrix((h, w, cy)).unsqueeze(0).to(device)
                 for _ in range(batch_size * K)
             ],
             dim=0,
