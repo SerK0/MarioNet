@@ -12,12 +12,13 @@ preprocess:
     landmark_type: "3D"
     device: "cpu"
 training:
-    batch_size: 4
+    batch_size: 24
     discriminator:
         clipping: 1
         lr: 0.0002
     generator:
         clipping: 1
+        step: 1
         lr: 0.00005
     logging:
       log_step: 10
