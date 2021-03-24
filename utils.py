@@ -91,7 +91,6 @@ class Trainer:
         best_generator_loss = 1e8
 
         for epoch in range(self.cfg.num_epoch):
-            print(f"Epoch {epoch}")
             pbar = tqdm(train_dataloader, leave=False, desc='Starting train')
             generator_loss_history = []
             for batch_idx, batch in enumerate(pbar):
