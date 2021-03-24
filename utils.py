@@ -1,8 +1,12 @@
 import typing as tp
 
+import wandb
 import torch
-from imageio import imsave
+import numpy as np
 from torchvision.utils import save_image
+from pathlib import Path
+from shutil import rmtree
+from tqdm.auto import tqdm
 
 from marionet.config import Config
 from marionet.dataset.dataset import MarioNetDataset
@@ -28,13 +32,33 @@ class Trainer:
         params int max_epoch: maximum number of epoch to train
         """
         self.cfg = cfg.training
+        self.save_path = Path(cfg.training.log_dir)
+        self.ckpt_save_dir = self.save_path / cfg.training.checkpoint_dir
+        self.img_save_dir = self.save_path / cfg.training.image_log_dir
+        self.wandb_logging = cfg.training.wandb_logging
+
+        if not self.save_path.exists():
+            self.save_path.mkdir()
+
+        if self.ckpt_save_dir.exists():
+            rmtree(self.ckpt_save_dir)
+
+        self.ckpt_save_dir.mkdir()
+
+        if self.img_save_dir.parent.exists():
+            rmtree(self.img_save_dir.parent)
+
+        self.img_save_dir.parent.mkdir(parents=True)
+
+        self.ckpt_save_dir = str(self.ckpt_save_dir)
+        self.img_save_dir = str(self.img_save_dir)
 
     def training(
         self,
         generator: MarioNet,
         discriminator: Discriminator,
-        train_dataloader: MarioNetDataset,
-        test_dataloader: MarioNetDataset,
+        train_dataloader: torch.utils.data.DataLoader,
+        test_dataloader: torch.utils.data.DataLoader,
         criterion_generator: GeneratorLoss,
         criterion_dicriminator: DiscriminatorHingeLoss,
         optimizer_generator: torch.optim.Adam,
@@ -53,9 +77,13 @@ class Trainer:
         params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
         """
 
+        best_generator_loss = 1e8
+
         for epoch in range(self.cfg.num_epoch):
             print(f"Epoch {epoch}")
-            for num_batch, batch in enumerate(train_dataloader):
+            pbar = tqdm(train_dataloader, leave=False, desc='Starting train')
+            generator_loss_history = []
+            for batch_idx, batch in enumerate(pbar):
 
                 discriminator_loss = self.discriminator_step(
                     generator,
@@ -72,16 +100,24 @@ class Trainer:
                     criterion_generator,
                     optimizer_generator,
                 )
+                generator_loss_history.append(generator_loss)
 
-                if num_batch % self.cfg.logging.log_step:
-                    print(
-                        f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
-                    )
+                new_description = "Epoch {}, Generator_loss: {:.5f}, discriminator_loss {:.5f}"
+                pbar.set_description(new_description.format(epoch, generator_loss, discriminator_loss))
 
-                if num_batch % self.cfg.samples.sample_step:
-                    self.generate_samples(
-                        generator, test_dataloader, index=f"{epoch}_{num_batch}"
-                    )
+            if best_generator_loss > np.mean(generator_loss_history):
+                best_generator_loss = np.mean(generator_loss_history)
+                ckpt = {
+                    'generator_state_dict': generator.state_dict(),
+                    'discriminator_state_dict': discriminator.state_dict(),
+                    'epoch': epoch
+                }
+
+                torch.save(ckpt, self.ckpt_save_dir + '/ckpt.pth')
+
+            self.generate_samples(
+                generator, test_dataloader, index=f"{epoch}"
+            )
 
     def generator_step(
         self,
@@ -112,11 +148,20 @@ class Trainer:
             driver_landmarks=batch["driver_landmarks"],
         )
 
-        loss = criterion_generator(
+        gan_loss, vgg19_perceptual_loss, vgg_vd_16_perceptual_loss, feature_map_loss = criterion_generator(
             reenacted_image=reenacted_images,
             driver_image=batch["driver_image"],
             driver_landmarks=batch["driver_landmarks"],
         )
+        if self.wandb_logging:
+            wandb.log({
+                'generator/gan_loss': gan_loss.item(),
+                'generator/vgg19_perceptual_loss': vgg19_perceptual_loss.item(),
+                'generator/vgg_vd_16_perceptual_loss': vgg_vd_16_perceptual_loss.item(),
+                'generator/feature_map_loss': feature_map_loss.item()
+            })
+
+        loss = gan_loss + vgg19_perceptual_loss + vgg_vd_16_perceptual_loss + feature_map_loss
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
@@ -167,18 +212,23 @@ class Trainer:
             fake_discriminator_features=features_tensor_reenacted_images,
         )
 
+        if self.wandb_logging:
+            wandb.log({
+                'discriminator/general': loss.item()
+            })
+
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
             discriminator.parameters(), self.cfg.discriminator.clipping
         )
         optimizer_discriminator.step()
 
-        return loss.item()
+        return loss
 
     @torch.no_grad()
     def generate_samples(
         self, generator: MarioNet, test_dataloader: MarioNetDataset, index: str = "0"
-    ) -> bool:
+    ) -> None:
         """
         :param MarioNet generator: generator network
         :param MarioNetDataset test_dataloader: test dataloader
@@ -206,13 +256,17 @@ class Trainer:
 
             generator_results = torch.cat(samples, dim=2)
 
+            if self.wandb_logging:
+                wandb.log({
+                    'images/epoch_{}'.format(index): wandb.Image(generator_results.detach().permute(1, 2, 0).numpy())
+                })
+
             save_image(
                 generator_results,
-                self.cfg.samples.saving_path.format(index),
+                self.img_save_dir.format(index),
                 nrow=1,
                 padding=0,
                 normalize=True,
             )
 
             break
-        return True

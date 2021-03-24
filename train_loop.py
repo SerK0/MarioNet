@@ -1,5 +1,6 @@
 import os
-import typing as tp
+import wandb
+
 from pathlib import Path
 from random import shuffle
 
@@ -90,4 +91,8 @@ def main(cfg: Config):
 
 if __name__ == "__main__":
     cfg = Config.from_file(Path(__file__).parent / "config.yaml")
+    wandb.init(name="FirstTest", project="MarioNet", config={
+        "Architecture": "MarioNett",
+        "batch_size": 8
+    })
     main(cfg)

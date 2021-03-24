@@ -1,4 +1,5 @@
 import torch
+import typing as tp
 
 from marionet.model import Discriminator
 
@@ -50,7 +51,7 @@ class GeneratorLoss:
         reenacted_image: torch.Tensor,
         driver_image: torch.Tensor,
         driver_landmarks: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> tp.Tuple[torch.Tensor, ...]:
         """
         Overall generator loss. It is being computed from reenacted image
         (i.e. generator output) and ground-truth reenacted image and its
@@ -74,12 +75,11 @@ class GeneratorLoss:
             reenacted_image, driver_landmarks
         )
         _, driver_feature_maps = self.discriminator(driver_image, driver_landmarks)
-        return (
-            self.gan_loss(reenacted_realness)
-            + (self.lambda_p * self.vgg19_loss(reenacted_image, driver_image))
-            + (self.lambda_pf * self.vgg_vd_16_loss(reenacted_image, driver_image))
-            + (
-                self.lambda_fm
-                * self.feature_map_loss(reenacted_feature_maps, driver_feature_maps)
-            )
-        )
+
+        gan_loss = self.gan_loss(reenacted_realness)
+        vgg19_perceptual_loss = self.lambda_p * self.vgg19_loss(reenacted_image, driver_image)
+        vgg_vd_16_perceptual_loss = self.lambda_pf * self.vgg_vd_16_loss(reenacted_image, driver_image)
+        feature_map_loss = (self.lambda_fm
+                            * self.feature_map_loss(reenacted_feature_maps, driver_feature_maps))
+
+        return gan_loss, vgg19_perceptual_loss, vgg_vd_16_perceptual_loss, feature_map_loss
