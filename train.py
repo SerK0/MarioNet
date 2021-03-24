@@ -109,7 +109,7 @@ if __name__ == "__main__":
         })
 
     if args.device[:4] == 'cuda' and torch.cuda.is_available():
-        device = 'cuda'
+        device = args.device
     else:
         device = 'cpu'
 
