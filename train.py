@@ -100,12 +100,15 @@ if __name__ == "__main__":
 
     config = Config.from_file(args.config)
 
-    wandb.init(name=args.wandb_name, project="MarioNet", config={
-        "Architecture": "MarioNett",
-        "batch_size": config.training.batch_size
-    })
+    if config.training.wandb_logging:
+        wandb.init(name=args.wandb_name, project="MarioNet", config={
+            "Architecture": "MarioNett",
+            "batch_size": config.training.batch_size
+        })
 
     train_model(config)
 
-    wandb.finish()
+    if config.training.wandb_logging:
+        wandb.finish()
+
     print("Training_finished")
