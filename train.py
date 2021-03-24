@@ -79,7 +79,7 @@ def train_model(cfg: Config, device: str) -> None:
     print(
         f"train_size_identities = {len(marionet_dataset_train)}, test_size_identities = {len(marionet_dataset_test)}"
     )
-    Trainer(cfg).training(
+    Trainer(cfg, device).training(
         generator=generator,
         discriminator=discriminator,
         train_dataloader=train_dataloader,

@@ -35,7 +35,7 @@ class Trainer:
     Class for MarioNet training
     """
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, device: str):
         """
         params Config cfg: config file with training parameters
         params int max_epoch: maximum number of epoch to train
@@ -46,7 +46,7 @@ class Trainer:
         self.img_save_dir = self.save_path / cfg.training.image_log_dir
         self.wandb_logging = cfg.training.wandb_logging
 
-        self.device = cfg.device
+        self.device = device
 
         if not self.save_path.exists():
             self.save_path.mkdir()
