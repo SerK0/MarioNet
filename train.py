@@ -1,5 +1,6 @@
 import os
 import wandb
+import argparse
 
 from pathlib import Path
 from random import shuffle
@@ -23,7 +24,7 @@ def check_dataloader(marionet_dataset_dataloader):
     print(batch["target_landmarks"].size())
 
 
-def main(cfg: Config):
+def train_model(cfg: Config):
 
     identities = os.listdir(
         os.path.join(cfg.dataset.folder, cfg.dataset.identity_structure)
@@ -90,9 +91,21 @@ def main(cfg: Config):
 
 
 if __name__ == "__main__":
-    cfg = Config.from_file(Path(__file__).parent / "config.yaml")
-    wandb.init(name="FirstTest", project="MarioNet", config={
+    default_config_p = str(Path(__file__).parent / "config.yaml")
+
+    parser = argparse.ArgumentParser("MarioNet training parameters")
+    parser.add_argument('--config', type=str, default=default_config_p)
+    parser.add_argument('--wandb-name', type=str, default='marionet_training')
+    args = parser.parse_args()
+
+    config = Config.from_file(args.config)
+
+    wandb.init(name=args.wandb_name, project="MarioNet", config={
         "Architecture": "MarioNett",
-        "batch_size": 8
+        "batch_size": config.training.batch_size
     })
-    main(cfg)
+
+    train_model(config)
+
+    wandb.finish()
+    print("Training_finished")
