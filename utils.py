@@ -127,9 +127,10 @@ class Trainer:
 
                 torch.save(ckpt, self.ckpt_save_dir + '/ckpt.pth')
 
-            self.generate_samples(
-                generator, test_dataloader, index=f"{epoch}"
-            )
+            if (epoch + 1) % self.cfg.logging.log_step == 0:
+                self.generate_samples(
+                    generator, test_dataloader, index=f"{epoch}"
+                )
 
     def generator_step(
         self,
