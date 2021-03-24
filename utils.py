@@ -21,6 +21,15 @@ def denorm(x):
     return out.clamp_(0, 1)
 
 
+def move_batch_to_device(batch: tp.Dict[str, torch.Tensor], device: str) -> tp.Dict[str, torch.Tensor]:
+    result_batch = {}
+
+    for key, images in batch.items():
+        result_batch[key] = images.to(device)
+
+    return result_batch
+
+
 class Trainer:
     """
     Class for MarioNet training
@@ -36,6 +45,8 @@ class Trainer:
         self.ckpt_save_dir = self.save_path / cfg.training.checkpoint_dir
         self.img_save_dir = self.save_path / cfg.training.image_log_dir
         self.wandb_logging = cfg.training.wandb_logging
+
+        self.device = cfg.device
 
         if not self.save_path.exists():
             self.save_path.mkdir()
@@ -84,6 +95,7 @@ class Trainer:
             pbar = tqdm(train_dataloader, leave=False, desc='Starting train')
             generator_loss_history = []
             for batch_idx, batch in enumerate(pbar):
+                batch = move_batch_to_device(batch, self.device)
 
                 discriminator_loss = self.discriminator_step(
                     generator,

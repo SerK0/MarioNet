@@ -1,4 +1,5 @@
 import os
+import torch
 import wandb
 import argparse
 
@@ -24,7 +25,7 @@ def check_dataloader(marionet_dataset_dataloader):
     print(batch["target_landmarks"].size())
 
 
-def train_model(cfg: Config):
+def train_model(cfg: Config, device: str) -> None:
 
     identities = os.listdir(
         os.path.join(cfg.dataset.folder, cfg.dataset.identity_structure)
@@ -64,8 +65,8 @@ def train_model(cfg: Config):
         shuffle=cfg.training.shuffle,
     )
 
-    generator = MarioNet(cfg)
-    discriminator = Discriminator(cfg)
+    generator = MarioNet(cfg).to(device)
+    discriminator = Discriminator(cfg).to(device)
 
     criterion_generator = GeneratorLoss(discriminator)
     criterion_discriminator = DiscriminatorHingeLoss()
@@ -96,6 +97,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("MarioNet training parameters")
     parser.add_argument('--config', type=str, default=default_config_p)
     parser.add_argument('--wandb-name', type=str, default='marionet_training')
+    parser.add_argument('--device', type=str, default='cuda')
     args = parser.parse_args()
 
     config = Config.from_file(args.config)
@@ -106,7 +108,12 @@ if __name__ == "__main__":
             "batch_size": config.training.batch_size
         })
 
-    train_model(config)
+    if args.device[:4] == 'cuda' and torch.cuda.is_available():
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    train_model(config, device)
 
     if config.training.wandb_logging:
         wandb.finish()
