@@ -22,13 +22,13 @@ training:
         lr: 0.00005
     logging:
       log_step: 10
-    num_epoch: 100
+    num_epoch: 400
     number_indentities_in_test: 5
     samples:
-      sample_step: 10
+      sample_step: 3 # per N epoch
       saving_path: "../generated_images/img_{}.jpg" 
     model_saving:
-      step: 300
+      step: 5 # per epoch
       path: "../checkpoints/model_{}.pt"
     random_seed: 2021
     shuffle: True

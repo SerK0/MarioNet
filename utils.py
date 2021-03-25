@@ -114,31 +114,31 @@ class Trainer:
                         f"Num_batch {num_batch}, overall_generator_loss {overall_generator_loss}, discriminator_loss {discriminator_loss}"
                     )
 
-                if (num_batch + 1) % self.cfg.samples.sample_step == 0:
-                    input_images, reenacted_image = self.generate_samples(
-                        generator, test_dataloader, index=f"{epoch}_{num_batch}"
-                    )
+            if (epoch + 1) % self.cfg.samples.sample_step == 0:
+                input_images, reenacted_image = self.generate_samples(
+                    generator, test_dataloader, index=f"{epoch}_{num_batch}"
+                )
 
-                    input_images = input_images.permute(1, 2, 0).cpu().numpy()
-                    reenacted_image = reenacted_image.permute(1, 2, 0).cpu().numpy()
+                input_images = input_images.permute(1, 2, 0).cpu().numpy()
+                reenacted_image = reenacted_image.permute(1, 2, 0).cpu().numpy()
 
-                    wandb.log(
-                        {
-                            "images/epoch_{}".format(epoch): [
-                                wandb.Image(input_images, caption="Input Images"),
-                                wandb.Image(reenacted_image, caption="Generated Image"),
-                            ]
-                        }
-                    )
-                if (num_batch + 1) % self.cfg.model_saving.step == 0:
-                    torch.save(
-                        generator.state_dict(),
-                        self.cfg.model_saving.path.format("generator"),
-                    )
-                    torch.save(
-                        discriminator.state_dict(),
-                        self.cfg.model_saving.path.format("discriminator"),
-                    )
+                wandb.log(
+                    {
+                        "images/epoch_{}".format(epoch): [
+                            wandb.Image(input_images, caption="Input Images"),
+                            wandb.Image(reenacted_image, caption="Generated Image"),
+                        ]
+                    }
+                )
+            if (epoch + 1) % self.cfg.model_saving.step == 0:
+                torch.save(
+                    generator.state_dict(),
+                    self.cfg.model_saving.path.format(f"generator_{epoch + 1}"),
+                )
+                torch.save(
+                    discriminator.state_dict(),
+                    self.cfg.model_saving.path.format(f"discriminator_{epoch + 1}"),
+                )
 
     def generator_step(
         self,
@@ -279,15 +279,11 @@ class Trainer:
             for target_image in batch["target_images"][0]:
                 samples.append(target_image)
 
-            reenacted_images = (
-                generator(
-                    target_image=batch["target_images"],
-                    target_landmarks=batch["target_landmarks"],
-                    driver_landmarks=batch["driver_landmarks"],
-                )
-                .detach()
-                .cpu()
-            )
+            reenacted_images = generator(
+                target_image=batch["target_images"],
+                target_landmarks=batch["target_landmarks"],
+                driver_landmarks=batch["driver_landmarks"],
+            ).detach()
 
             samples.append(denorm(reenacted_images[0]))
 
