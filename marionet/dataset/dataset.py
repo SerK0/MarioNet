@@ -70,6 +70,9 @@ class MarioNetDataset(Dataset):
             ),
         )
 
+        if len(path_to_faces) < self.n_target_images + 1:
+            return self.__getitem__(index)
+
         face_pathes = np.random.choice(
             path_to_faces, size=self.n_target_images + 1, replace=True
         )

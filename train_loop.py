@@ -85,11 +85,6 @@ def main(cfg: Config):
         discriminator.parameters(), lr=cfg.training.discriminator.lr
     )
 
-    print(
-        f"train_size_identities = {len(marionet_dataset_train)}, test_size_identities = {len(marionet_dataset_test)}"
-    )
-    print(f"test identities ->>> {test_identities}")
-
     Trainer(cfg, cfg.device).training(
         generator=generator,
         discriminator=discriminator,

@@ -69,6 +69,11 @@ class Trainer:
         params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
         """
 
+        print(
+            f"train_size_identities = {len(train_dataloader)}, test_size_identities = {len(test_dataloader)}"
+        )
+        print(f"test identities ->>> {test_dataloader.dataset.identity_structure}")
+
         for epoch in range(self.cfg.num_epoch):
             print(f"Epoch {epoch}")
             for num_batch, batch in enumerate(train_dataloader):
