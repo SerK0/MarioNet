@@ -289,7 +289,7 @@ class Trainer:
                 driver_landmarks=batch["driver_landmarks"],
             ).detach()
 
-            samples.append(reenacted_images[0]))
+            samples.append(reenacted_images[0])
 
             generator_results = torch.cat(samples, dim=2)
 
