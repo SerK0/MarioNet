@@ -1,4 +1,4 @@
-device: cuda
+device: cpu
 dataset:
     folder: "../VoxCeleb1/"
     faces_structure: "Faces/{0}/1.6/{1}/*"
@@ -12,7 +12,7 @@ preprocess:
     landmark_type: "3D"
     device: "cpu"
 training:
-    batch_size: 24
+    batch_size: 4
     discriminator:
         clipping: 1
         lr: 0.0002
@@ -20,15 +20,18 @@ training:
         clipping: 1
         step: 1
         lr: 0.00005
+        lambda_p: 10
+        lambda_pf: 0.01
+        lambda_fm: 10
     logging:
       log_step: 10
     num_epoch: 400
-    number_indentities_in_test: 5
+    number_indentities_in_test: 15
     samples:
-      sample_step: 3 # per N epoch
+      sample_step: 10 # per N epoch
       saving_path: "../generated_images/img_{}.jpg" 
     model_saving:
-      step: 5 # per epoch
+      step: 10 # per epoch
       path: "../checkpoints/model_{}.pt"
     random_seed: 2021
     shuffle: True

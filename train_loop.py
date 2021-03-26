@@ -71,7 +71,13 @@ def main(cfg: Config):
     generator = MarioNet(cfg).to(cfg.device)
     discriminator = Discriminator(cfg).to(cfg.device)
 
-    criterion_generator = GeneratorLoss(discriminator, device=cfg.device)
+    criterion_generator = GeneratorLoss(
+        discriminator,
+        lambda_p=cfg.training.generator.lambda_p,
+        lambda_pf=cfg.training.generator.lambda_pf,
+        lambda_fm=cfg.training.generator.lambda_fm,
+        device=cfg.device,
+    )
     criterion_discriminator = DiscriminatorHingeLoss()
 
     optimizer_generator = Adam(generator.parameters(), lr=cfg.training.generator.lr)
@@ -82,6 +88,8 @@ def main(cfg: Config):
     print(
         f"train_size_identities = {len(marionet_dataset_train)}, test_size_identities = {len(marionet_dataset_test)}"
     )
+    print(f"test identities ->>> {test_identities}")
+
     Trainer(cfg, cfg.device).training(
         generator=generator,
         discriminator=discriminator,

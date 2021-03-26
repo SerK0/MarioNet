@@ -30,7 +30,7 @@ class GeneratorLoss:
         """
         :param tp.Callable[[torch.Tensor], torch.Tensor] discriminator: discriminator
         :param float lambda_p: coefficient for perceptual loss with VGG19
-        :param float lambda_fp: coefficient for perceptual loss with VGG_VD_16
+        :param float lambda_pf: coefficient for perceptual loss with VGG_VD_16
         :param float lambda_fm: coefficient for discriminator feature map loss
         :returns: None
         """
