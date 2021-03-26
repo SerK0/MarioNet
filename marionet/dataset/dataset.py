@@ -74,7 +74,8 @@ class MarioNetDataset(Dataset):
             return self.__getitem__(index)
 
         face_pathes = np.random.choice(
-            path_to_faces, size=self.n_target_images + 1, replace=True
+            path_to_faces,
+            size=self.n_target_images + 1,
         )
 
         driver_face_path, target_face_path = face_pathes[0], face_pathes[1:]
