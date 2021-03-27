@@ -284,9 +284,9 @@ class Trainer:
                 samples.append(target_image)
 
             reenacted_images = generator(
-                target_image=batch["target_images"],
-                target_landmarks=batch["target_landmarks"],
-                driver_landmarks=batch["driver_landmarks"],
+                target_image=batch["target_images"][0].unsqueeze(0),
+                target_landmarks=batch["target_landmarks"][0].unsqueeze(0),
+                driver_landmarks=batch["driver_landmarks"][0].unsqueeze(0),
             ).detach()
 
             samples.append(reenacted_images[0])
