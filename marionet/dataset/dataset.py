@@ -56,12 +56,14 @@ class MarioNetDataset(Dataset):
 
     def __getitem__(self, index: int) -> tp.Dict[str, torch.Tensor]:
 
-        identity = np.random.choice(self.identity_structure, size=1)[0]
+        identity = np.random.choice(self.identity_structure, size=1, replace=False)[0]
         identity_subfolders = os.listdir(
             os.path.join(self.folder, self.video_structure.format(identity))
         )
 
-        identity_subfolder_name = np.random.choice(identity_subfolders, size=1)[0]
+        identity_subfolder_name = np.random.choice(
+            identity_subfolders, size=1, replace=False
+        )[0]
 
         path_to_faces = glob(
             os.path.join(
@@ -74,8 +76,7 @@ class MarioNetDataset(Dataset):
             return self.__getitem__(index)
 
         face_pathes = np.random.choice(
-            path_to_faces,
-            size=self.n_target_images + 1,
+            path_to_faces, size=self.n_target_images + 1, replace=False
         )
 
         driver_face_path, target_face_path = face_pathes[0], face_pathes[1:]
