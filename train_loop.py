@@ -1,8 +1,10 @@
 import os
+import random
 import typing as tp
 from pathlib import Path
-from random import shuffle
 
+import numpy as np
+import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -24,10 +26,14 @@ def check_dataloader(marionet_dataset_dataloader):
 
 def main(cfg: Config):
 
+    np.random.seed(cfg.training.random_seed)
+    random.seed(cfg.training.random_seed)
+    torch.manual_seed(cfg.training.random_seed)
+
     identities = os.listdir(
         os.path.join(cfg.dataset.folder, cfg.dataset.identity_structure)
     )
-    shuffle(identities)
+    random.shuffle(identities)
 
     train_identities = identities[: -cfg.training.number_indentities_in_test]
     test_identities = identities[-cfg.training.number_indentities_in_test :]
@@ -62,10 +68,16 @@ def main(cfg: Config):
         shuffle=cfg.training.shuffle,
     )
 
-    generator = MarioNet(cfg)
-    discriminator = Discriminator(cfg)
+    generator = MarioNet(cfg).to(cfg.device)
+    discriminator = Discriminator(cfg).to(cfg.device)
 
-    criterion_generator = GeneratorLoss(discriminator)
+    criterion_generator = GeneratorLoss(
+        discriminator,
+        lambda_p=cfg.training.generator.lambda_p,
+        lambda_pf=cfg.training.generator.lambda_pf,
+        lambda_fm=cfg.training.generator.lambda_fm,
+        device=cfg.device,
+    )
     criterion_discriminator = DiscriminatorHingeLoss()
 
     optimizer_generator = Adam(generator.parameters(), lr=cfg.training.generator.lr)
@@ -73,10 +85,7 @@ def main(cfg: Config):
         discriminator.parameters(), lr=cfg.training.discriminator.lr
     )
 
-    print(
-        f"train_size_identities = {len(marionet_dataset_train)}, test_size_identities = {len(marionet_dataset_test)}"
-    )
-    Trainer(cfg).training(
+    Trainer(cfg, cfg.device).training(
         generator=generator,
         discriminator=discriminator,
         train_dataloader=train_dataloader,

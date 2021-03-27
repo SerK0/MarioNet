@@ -1,14 +1,15 @@
-import torch
+import typing as tp
 
+import torch
 from marionet.model import Discriminator
 
-from .perceptual_loss import (
-    PerceptualLossVGG19,
-    PerceptualLossVGG_VD_16,
-    PerceptualLoss,
-)
 from .feature_map_loss import FeatureMapLoss
 from .generator_hinge_loss import GeneratorHingeLoss
+from .perceptual_loss import (
+    PerceptualLoss,
+    PerceptualLossVGG19,
+    PerceptualLossVGG_VD_16,
+)
 
 
 class GeneratorLoss:
@@ -24,11 +25,12 @@ class GeneratorLoss:
         lambda_p: float = 0.01,
         lambda_pf: float = 0.01,
         lambda_fm: float = 10.0,
+        device: str = "cpu",
     ):
         """
         :param tp.Callable[[torch.Tensor], torch.Tensor] discriminator: discriminator
         :param float lambda_p: coefficient for perceptual loss with VGG19
-        :param float lambda_fp: coefficient for perceptual loss with VGG_VD_16
+        :param float lambda_pf: coefficient for perceptual loss with VGG_VD_16
         :param float lambda_fm: coefficient for discriminator feature map loss
         :returns: None
         """
@@ -36,10 +38,10 @@ class GeneratorLoss:
 
         self.gan_loss = GeneratorHingeLoss()
 
-        self.vgg19_loss = PerceptualLoss(PerceptualLossVGG19())
+        self.vgg19_loss = PerceptualLoss(PerceptualLossVGG19(device=device))
         self.lambda_p = lambda_p
 
-        self.vgg_vd_16_loss = PerceptualLoss(PerceptualLossVGG_VD_16())
+        self.vgg_vd_16_loss = PerceptualLoss(PerceptualLossVGG_VD_16(device=device))
         self.lambda_pf = lambda_pf
 
         self.feature_map_loss = FeatureMapLoss()
@@ -50,7 +52,7 @@ class GeneratorLoss:
         reenacted_image: torch.Tensor,
         driver_image: torch.Tensor,
         driver_landmarks: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> tp.Tuple[torch.Tensor, ...]:
         """
         Overall generator loss. It is being computed from reenacted image
         (i.e. generator output) and ground-truth reenacted image and its
@@ -68,18 +70,27 @@ class GeneratorLoss:
         :param torch.Tensor driver_image: driver image
         :param torch.Tensor driver_landmarks: driver landmarks
         :returns: overall generator loss
-        :rtype: torch.Tensor
+        :rtype: tp.Tuple[torch.Tensor, ...]
         """
         reenacted_realness, reenacted_feature_maps = self.discriminator(
             reenacted_image, driver_landmarks
         )
         _, driver_feature_maps = self.discriminator(driver_image, driver_landmarks)
+
+        gan_loss = self.gan_loss(reenacted_realness)
+        vgg19_perceptual_loss = self.lambda_p * self.vgg19_loss(
+            reenacted_image, driver_image
+        )
+        vgg_vd_16_perceptual_loss = self.lambda_pf * self.vgg_vd_16_loss(
+            reenacted_image, driver_image
+        )
+        feature_map_loss = self.lambda_fm * self.feature_map_loss(
+            reenacted_feature_maps, driver_feature_maps
+        )
+
         return (
-            self.gan_loss(reenacted_realness)
-            + (self.lambda_p * self.vgg19_loss(reenacted_image, driver_image))
-            + (self.lambda_pf * self.vgg_vd_16_loss(reenacted_image, driver_image))
-            + (
-                self.lambda_fm
-                * self.feature_map_loss(reenacted_feature_maps, driver_feature_maps)
-            )
+            gan_loss,
+            vgg19_perceptual_loss,
+            vgg_vd_16_perceptual_loss,
+            feature_map_loss,
         )

@@ -45,6 +45,6 @@ class Config(DotDict):
         :returns: populated Config instance
         """
         with open(filepath, "r") as config_file:
-            config_dict = yaml.load(config_file)
+            config_dict = yaml.load(config_file, Loader=yaml.Loader)
 
         return cls(config_dict)

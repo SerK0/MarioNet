@@ -42,14 +42,11 @@ class MarioNetDataset(Dataset):
         self.n_target_images = n_target_images
         self.image_size = image_size
 
-        transformations = torch.nn.Sequential(
-            transforms.Resize((image_size,), interpolation=Image.BILINEAR),
-            transforms.CenterCrop(image_size),
-        )
-
-        self.transforms = torch.jit.script(transformations)
-        self.transforms_normalization = transforms.Compose(
+        self.transformations = transforms.Compose(
             [
+                transforms.Resize(image_size),
+                transforms.CenterCrop(image_size),
+                transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
             ]
         )
@@ -59,12 +56,14 @@ class MarioNetDataset(Dataset):
 
     def __getitem__(self, index: int) -> tp.Dict[str, torch.Tensor]:
 
-        identity = np.random.choice(self.identity_structure, size=1)[0]
+        identity = np.random.choice(self.identity_structure, size=1, replace=False)[0]
         identity_subfolders = os.listdir(
             os.path.join(self.folder, self.video_structure.format(identity))
         )
 
-        identity_subfolder_name = np.random.choice(identity_subfolders, size=1)[0]
+        identity_subfolder_name = np.random.choice(
+            identity_subfolders, size=1, replace=False
+        )[0]
 
         path_to_faces = glob(
             os.path.join(
@@ -73,21 +72,24 @@ class MarioNetDataset(Dataset):
             ),
         )
 
+        if len(path_to_faces) < self.n_target_images + 1:
+            return self.__getitem__(index)
+
         face_pathes = np.random.choice(
-            path_to_faces, size=self.n_target_images + 1, replace=True
+            path_to_faces, size=self.n_target_images + 1, replace=False
         )
 
         driver_face_path, target_face_path = face_pathes[0], face_pathes[1:]
 
-        driver_image = io.imread(driver_face_path)
-        driver_landmarks = io.imread(re.sub("Faces", "Landmarks", driver_face_path))
+        driver_image = Image.open(driver_face_path)
+        driver_landmarks = Image.open(re.sub("Faces", "Landmarks", driver_face_path))
 
         target_images = []
         target_landmarks = []
 
         for target_face in target_face_path:
-            target_image = io.imread(target_face)
-            target_image_landmarks = io.imread(
+            target_image = Image.open(target_face)
+            target_image_landmarks = Image.open(
                 re.sub("Faces", "Landmarks", target_face)
             )
 
@@ -107,5 +109,4 @@ class MarioNetDataset(Dataset):
         """
         :param image: Image in numpy format, H x W x C.
         """
-        image_cropped = self.transforms(torch.tensor(image).permute(2, 0, 1)).float()
-        return self.transforms_normalization(image_cropped)
+        return self.transformations(image)

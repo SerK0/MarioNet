@@ -1,13 +1,13 @@
-device: cuda
+device: cpu
 dataset:
-    folder: "/home/serk0/Business/new_live/VoxCeleb1/"
+    folder: "../VoxCeleb1/"
     faces_structure: "Faces/{0}/1.6/{1}/*"
     identity_structure: "Faces/"
     video_structure: "Faces/{0}/1.6/"
     n_target_images: 4
     image_size: 128
 preprocess:
-    folder: "/home/serk0/Business/new_live/VoxCeleb1/"
+    folder: "../VoxCeleb1/"
     dataset_structure: "Faces/*/*/*/*"
     landmark_type: "3D"
     device: "cpu"
@@ -18,15 +18,26 @@ training:
         lr: 0.0002
     generator:
         clipping: 1
+        step: 1
         lr: 0.00005
+        lambda_p: 10
+        lambda_pf: 0.01
+        lambda_fm: 10
     logging:
-      log_step: 2
-    num_epoch: 100
+      log_step: 10
+    num_epoch: 400
+    number_indentities_in_test: 15
     samples:
-      sample_step: 2
+      sample_step: 10 # per N epoch
       saving_path: "../generated_images/img_{}.jpg" 
+    model_saving:
+      step: 10 # per epoch
+      path: "../checkpoints/model_{}.pt"
+    random_seed: 2021
     shuffle: True
-    number_indentities_in_test: 5
+    wandb:
+      project: 'MarioNet'
+      name: 'First_run'
 model:
   # MarioNet parameters grouped by main network components.
   # Groups are named after implementation classnames (i.e. CamelCase).

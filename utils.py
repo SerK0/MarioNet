@@ -1,6 +1,7 @@
 import typing as tp
 
 import torch
+import wandb
 from imageio import imsave
 from torchvision.utils import save_image
 
@@ -17,24 +18,39 @@ def denorm(x):
     return out.clamp_(0, 1)
 
 
+def move_batch_to_device(
+    batch: tp.Dict[str, torch.Tensor], device: str
+) -> tp.Dict[str, torch.Tensor]:
+    result_batch = {}
+
+    for key, images in batch.items():
+        result_batch[key] = images.to(device)
+
+    return result_batch
+
+
 class Trainer:
     """
     Class for MarioNet training
     """
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, device: str):
         """
         params Config cfg: config file with training parameters
-        params int max_epoch: maximum number of epoch to train
+        params str device: device
         """
         self.cfg = cfg.training
+        self.device = device
+        self.wandb = wandb.init(
+            project=cfg.training.wandb.project, name=cfg.training.wandb.name
+        )
 
     def training(
         self,
         generator: MarioNet,
         discriminator: Discriminator,
-        train_dataloader: MarioNetDataset,
-        test_dataloader: MarioNetDataset,
+        train_dataloader: torch.utils.data.DataLoader,
+        test_dataloader: torch.utils.data.DataLoader,
         criterion_generator: GeneratorLoss,
         criterion_dicriminator: DiscriminatorHingeLoss,
         optimizer_generator: torch.optim.Adam,
@@ -53,9 +69,16 @@ class Trainer:
         params torch.optim.Adam optimizer_discriminator: dicriminator optimizator
         """
 
+        print(
+            f"train_size_identities = {len(train_dataloader)}, test_size_identities = {len(test_dataloader)}"
+        )
+        print(f"test identities ->>> {test_dataloader.dataset.identity_structure}")
+
         for epoch in range(self.cfg.num_epoch):
             print(f"Epoch {epoch}")
             for num_batch, batch in enumerate(train_dataloader):
+
+                batch = move_batch_to_device(batch, self.device)
 
                 discriminator_loss = self.discriminator_step(
                     generator,
@@ -65,23 +88,61 @@ class Trainer:
                     optimizer_discriminator,
                 )
 
-                generator_loss = self.generator_step(
-                    generator,
-                    discriminator,
-                    batch,
-                    criterion_generator,
-                    optimizer_generator,
+                if (num_batch + 1) % self.cfg.generator.step == 0:
+                    (
+                        gan_loss,
+                        vgg19_perceptual_loss,
+                        vgg_vd_16_perceptual_loss,
+                        feature_map_loss,
+                        overall_generator_loss,
+                    ) = self.generator_step(
+                        generator,
+                        discriminator,
+                        batch,
+                        criterion_generator,
+                        optimizer_generator,
+                    )
+
+                if (num_batch + 1) % self.cfg.logging.log_step == 0:
+                    wandb.log(
+                        {
+                            "generator/overall loss": overall_generator_loss,
+                            "generator/gan_loss": gan_loss,
+                            "generator/vgg19_perceptual_loss": vgg19_perceptual_loss,
+                            "generator/vgg_vd_16_perceptual_loss": vgg_vd_16_perceptual_loss,
+                            "generator/feature_map_loss": feature_map_loss,
+                            "discriminator/overall_loss": discriminator_loss,
+                        }
+                    )
+
+                    print(
+                        f"Num_batch {num_batch}, overall_generator_loss {overall_generator_loss}, discriminator_loss {discriminator_loss}"
+                    )
+
+            if (epoch + 1) % self.cfg.samples.sample_step == 0:
+                input_images, reenacted_image = self.generate_samples(
+                    generator, test_dataloader, index=f"{epoch}_{num_batch}"
                 )
 
-                if num_batch % self.cfg.logging.log_step:
-                    print(
-                        f"Num_batch {num_batch}, generator_loss {generator_loss}, discriminator_loss {discriminator_loss}"
-                    )
+                input_images = input_images.permute(1, 2, 0).cpu().numpy()
+                reenacted_image = reenacted_image.permute(1, 2, 0).cpu().numpy()
 
-                if num_batch % self.cfg.samples.sample_step:
-                    self.generate_samples(
-                        generator, test_dataloader, index=f"{epoch}_{num_batch}"
-                    )
+                wandb.log(
+                    {
+                        "images/epoch_{}".format(epoch): [
+                            wandb.Image(input_images, caption="Input Images"),
+                        ]
+                    }
+                )
+            if (epoch + 1) % self.cfg.model_saving.step == 0:
+                torch.save(
+                    generator.state_dict(),
+                    self.cfg.model_saving.path.format(f"generator_{epoch + 1}"),
+                )
+                torch.save(
+                    discriminator.state_dict(),
+                    self.cfg.model_saving.path.format(f"discriminator_{epoch + 1}"),
+                )
 
     def generator_step(
         self,
@@ -112,10 +173,22 @@ class Trainer:
             driver_landmarks=batch["driver_landmarks"],
         )
 
-        loss = criterion_generator(
+        (
+            gan_loss,
+            vgg19_perceptual_loss,
+            vgg_vd_16_perceptual_loss,
+            feature_map_loss,
+        ) = criterion_generator(
             reenacted_image=reenacted_images,
             driver_image=batch["driver_image"],
             driver_landmarks=batch["driver_landmarks"],
+        )
+
+        loss = (
+            gan_loss
+            + vgg19_perceptual_loss
+            + vgg_vd_16_perceptual_loss
+            + feature_map_loss
         )
 
         loss.backward()
@@ -124,7 +197,13 @@ class Trainer:
         )
         optimizer_generator.step()
 
-        return loss.item()
+        return (
+            gan_loss.item(),
+            vgg19_perceptual_loss.item(),
+            vgg_vd_16_perceptual_loss.item(),
+            feature_map_loss.item(),
+            loss.item(),
+        )
 
     def discriminator_step(
         self,
@@ -156,7 +235,8 @@ class Trainer:
         optimizer_discriminator.zero_grad()
 
         features_tensor_driver_images = discriminator(
-            image=batch["driver_image"], landmarks=batch["driver_landmarks"]
+            image=batch["driver_image"],
+            landmarks=batch["driver_landmarks"],
         )[0]
         features_tensor_reenacted_images = discriminator(
             image=reenacted_images, landmarks=batch["driver_landmarks"]
@@ -177,17 +257,24 @@ class Trainer:
 
     @torch.no_grad()
     def generate_samples(
-        self, generator: MarioNet, test_dataloader: MarioNetDataset, index: str = "0"
+        self,
+        generator: MarioNet,
+        test_dataloader: MarioNetDataset,
+        index: str = "0",
+        save_local: bool = False,
     ) -> bool:
         """
         :param MarioNet generator: generator network
         :param MarioNetDataset test_dataloader: test dataloader
         :param int index: index of saving results
+        :param bool save_local: whether to save images locally
         :rtype: bool
         """
 
         generator.eval()
         for num_batch, batch in enumerate(test_dataloader):
+            batch = move_batch_to_device(batch, self.device)
+
             samples = [
                 batch["driver_image"][0],
                 batch["driver_landmarks"][0],
@@ -197,22 +284,32 @@ class Trainer:
                 samples.append(target_image)
 
             reenacted_images = generator(
-                target_image=batch["target_images"],
-                target_landmarks=batch["target_landmarks"],
-                driver_landmarks=batch["driver_landmarks"],
-            )
+                target_image=batch["target_images"][0].unsqueeze(0),
+                target_landmarks=batch["target_landmarks"][0].unsqueeze(0),
+                driver_landmarks=batch["driver_landmarks"][0].unsqueeze(0),
+            ).detach()
 
             samples.append(reenacted_images[0])
 
             generator_results = torch.cat(samples, dim=2)
 
-            save_image(
-                generator_results,
-                self.cfg.samples.saving_path.format(index),
-                nrow=1,
-                padding=0,
-                normalize=True,
-            )
+            if save_local:
+
+                save_image(
+                    generator_results,
+                    self.cfg.samples.saving_path.format(index),
+                    nrow=1,
+                    padding=0,
+                    normalize=True,
+                )
+
+                save_image(
+                    denorm(reenacted_images[0]),
+                    self.cfg.samples.saving_path.format("generator_image_" + index),
+                    nrow=1,
+                    padding=0,
+                    normalize=True,
+                )
 
             break
-        return True
+        return generator_results, samples[-1]
