@@ -232,7 +232,7 @@ class SelfAttentionBlock(nn.Module):
             torch.tensor(self.attention_feature_size, dtype=torch.float32)
         )
 
-        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1), dim=0).view(
+        softmax_attentioned = F.softmax(attn_value.view(batch_size, -1), dim=1).view(
             *attn_value.size()
         )
         output_t = torch.bmm(softmax_attentioned, v.view(batch_size, -1, cx))
